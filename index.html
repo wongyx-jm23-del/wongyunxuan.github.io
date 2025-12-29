@@ -1,32 +1,453 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Wong Yun Xuan's Website</title>
-        <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Countdown - New Year Celebration</title>
+    <meta name="description" content="Countdown to 2026 with a stunning, interactive display">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
 <body>
-    <section class="hero is-fullheight is-dark">
-        <div class="hero-body">
-            <div class="container">
-            <div class="columns is-vcentered is-centered">
-                <div class="column is-6">
-                    <div class="block">
-                        <h1 class="title is-2">Welcome to Wong Yun Xuan's Website.</h1>
-                    </div>
-                    <div class="block">
-                        <h2 class="subtitle">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.<br>
-                        </h2>
-                    </div>
-                    <div class="block buttons">
-                        <a href="https://facebook.com/"><button class="button is-white is-outlined">Visit my Facebook</button></a> &nbsp;
-                        <a href="https://twitter.com/"><button class="button is-white is-outlined">Visit my Twitter</button></a>
-                    </div>
+    <div class="background-animation">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="gradient-orb orb-4"></div>
+    </div>
+
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <span class="title-text" id="titlePrefix">Countdown to</span>
+                <div class="year-container">
+                    <div class="year-aura"></div>
+                    <span class="year-highlight" id="yearDisplay">2025</span>
+                    <div class="title-sparkles" id="title-sparkles"></div>
+                </div>
+            </h1>
+            <p class="subtitle" id="subtitle">A New Era Begins</p>
+        </header>
+
+        <main class="countdown-section">
+            <div class="countdown-grid">
+                <div class="time-card">
+                    <div class="time-value" id="days">00</div>
+                    <div class="time-label">Days</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value" id="hours">00</div>
+                    <div class="time-label">Hours</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value" id="minutes">00</div>
+                    <div class="time-label">Minutes</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value" id="seconds">00</div>
+                    <div class="time-label">Seconds</div>
                 </div>
             </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-        </div>
-    </section>
+
+            <div class="message-container">
+                <p class="countdown-message" id="message">Time until 2026</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalSeconds">0</div>
+                    <div class="stat-label">Total Seconds</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="percentage">0%</div>
+                    <div class="stat-label">Year Progress</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="finalCountdown" class="final-countdown"></div>
+    <canvas id="fireworks"></canvas>
+
+    <!-- Three.js Library and Post-processing -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // Target date: January 1, 2026, 00:00:00
+        const targetDate = new Date('2026-01-01T00:00:00').getTime();
+        const yearStart = new Date('2025-01-01T00:00:00').getTime();
+
+        // DOM Elements
+        const daysElement = document.getElementById('days');
+        const hoursElement = document.getElementById('hours');
+        const minutesElement = document.getElementById('minutes');
+        const secondsElement = document.getElementById('seconds');
+        const messageElement = document.getElementById('message');
+        const progressBar = document.getElementById('progressBar');
+        const totalSecondsElement = document.getElementById('totalSeconds');
+        const percentageElement = document.getElementById('percentage');
+        const yearDisplay = document.getElementById('yearDisplay');
+        const titlePrefix = document.getElementById('titlePrefix');
+        const subtitle = document.getElementById('subtitle');
+        const finalCountdownOverlay = document.getElementById('finalCountdown');
+        const mainContainer = document.querySelector('.container');
+
+        let yearSwapped = false;
+        let lastFinalSecond = -1;
+
+        // Three.js Engine State
+        let scene, camera, renderer, composer;
+        let fireworksActive = false;
+        let fireworkInstances = [];
+        let particleGroups = [];
+
+        // Set initial year and wording based on date
+        if (new Date().getTime() < targetDate) {
+            if (yearDisplay) yearDisplay.textContent = '2025'; // Show current year
+            if (titlePrefix) titlePrefix.textContent = 'Countdown to';
+            if (subtitle) subtitle.textContent = 'A New Era Begins';
+        } else {
+            if (yearDisplay) yearDisplay.textContent = '2026';
+            if (titlePrefix) titlePrefix.textContent = 'Happy New Year';
+            if (subtitle) subtitle.textContent = 'Welcome to 2026!';
+            yearSwapped = true;
+        }
+
+        // Create particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 60;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 3 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.opacity = Math.random() * 0.5 + 0.2;
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Create sparkles around the title
+        function createTitleSparkle() {
+            const container = document.getElementById('title-sparkles');
+            if (!container) return;
+
+            const sparkle = document.createElement('div');
+            sparkle.className = 'title-sparkle';
+
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+
+            sparkle.style.left = x + '%';
+            sparkle.style.top = y + '%';
+
+            const size = Math.random() * 6 + 2;
+            sparkle.style.width = size + 'px';
+            sparkle.style.height = size + 'px';
+
+            container.appendChild(sparkle);
+
+            setTimeout(() => {
+                sparkle.remove();
+            }, 1500);
+        }
+
+        // Format number with leading zero
+        function formatNumber(num) {
+            return num < 10 ? '0' + num : num;
+        }
+
+        // Format large numbers with commas
+        function formatLargeNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function initThreeJS() {
+            try {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+                camera.position.z = 800;
+
+                renderer = new THREE.WebGLRenderer({
+                    canvas: document.getElementById('fireworks'),
+                    antialias: true,
+                    alpha: true
+                });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.setClearColor(0x000000, 0); // Essential for transparency
+
+                const renderScene = new RenderPass(scene, camera);
+
+                const bloomPass = new UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    1.5, 0.4, 0.85
+                );
+
+                composer = new EffectComposer(renderer);
+                // Ensure internal buffers support transparency
+                composer.renderTarget1.texture.format = THREE.RGBAFormat;
+                composer.renderTarget2.texture.format = THREE.RGBAFormat;
+
+                composer.addPass(renderScene);
+                composer.addPass(bloomPass);
+
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    composer.setSize(window.innerWidth, window.innerHeight);
+                });
+            } catch (e) {
+                console.warn("Three.js initialization failed:", e);
+            }
+        }
+
+        // Update countdown
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                daysElement.textContent = '00';
+                hoursElement.textContent = '00';
+                minutesElement.textContent = '00';
+                secondsElement.textContent = '00';
+                messageElement.textContent = '🎉 Welcome to 2026! 🎉';
+                messageElement.classList.add('celebration-message');
+
+                if (!yearSwapped && yearDisplay) {
+                    yearSwapped = true;
+                    if (finalCountdownOverlay) finalCountdownOverlay.style.display = 'none';
+                    if (mainContainer) mainContainer.classList.remove('ui-dimmed');
+                    yearDisplay.classList.add('year-flip');
+                    setTimeout(() => {
+                        yearDisplay.textContent = '2026';
+                        if (titlePrefix) titlePrefix.textContent = 'Happy New Year';
+                        if (subtitle) subtitle.textContent = 'Welcome to 2026!';
+                    }, 500);
+                }
+
+                document.querySelector('.countdown-grid').classList.add('celebration');
+                if (!fireworksActive) startFireworks();
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            daysElement.textContent = formatNumber(days);
+            hoursElement.textContent = formatNumber(hours);
+            minutesElement.textContent = formatNumber(minutes);
+            secondsElement.textContent = formatNumber(seconds);
+
+            const totalSeconds = Math.floor(distance / 1000);
+            totalSecondsElement.textContent = formatLargeNumber(totalSeconds);
+
+            const elapsed = now - yearStart;
+            const totalYearDuration = targetDate - yearStart;
+            const percentage = Math.min(100, Math.max(0, (elapsed / totalYearDuration) * 100));
+
+            progressBar.style.width = percentage + '%';
+            percentageElement.textContent = percentage.toFixed(2) + '%';
+
+            if (distance <= 10500 && distance > 0) {
+                showFinalCountdown(Math.ceil(distance / 1000));
+            } else {
+                if (finalCountdownOverlay) finalCountdownOverlay.style.display = 'none';
+                if (mainContainer) mainContainer.classList.remove('ui-dimmed');
+            }
+        }
+
+        function showFinalCountdown(seconds) {
+            if (seconds === lastFinalSecond || seconds <= 0) return;
+            lastFinalSecond = seconds;
+            if (finalCountdownOverlay) {
+                finalCountdownOverlay.style.display = 'flex';
+                finalCountdownOverlay.innerHTML = `<div class="countdown-number" data-number="${seconds}">${seconds}</div>`;
+                if (mainContainer) mainContainer.classList.add('ui-dimmed');
+                if (seconds <= 3) {
+                    document.body.style.animation = 'none';
+                    setTimeout(() => {
+                        document.body.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both';
+                    }, 10);
+                }
+            }
+        }
+
+        let previousValues = { days: null, hours: null, minutes: null, seconds: null };
+        function addPulseAnimation() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+            if (distance < 0) return;
+
+            const currentValues = {
+                days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((distance % (1000 * 60)) / 1000)
+            };
+
+            const elements = { days: daysElement.parentElement, hours: hoursElement.parentElement, minutes: minutesElement.parentElement, seconds: secondsElement.parentElement };
+            Object.keys(currentValues).forEach(key => {
+                if (previousValues[key] !== null && previousValues[key] !== currentValues[key]) {
+                    elements[key].style.animation = 'none';
+                    setTimeout(() => { elements[key].style.animation = 'celebrate 0.5s ease-in-out'; }, 10);
+                }
+                previousValues[key] = currentValues[key];
+            });
+        }
+
+        // Firework Class
+        class FireworkInstance {
+            constructor() {
+                this.hue = Math.random() * 360;
+                this.color = new THREE.Color(`hsl(${this.hue}, 100%, 60%)`);
+                const x = (Math.random() - 0.5) * 1000;
+                const y = -600;
+                const z = (Math.random() - 0.5) * 400;
+                this.position = new THREE.Vector3(x, y, z);
+                this.targetY = (Math.random() * 400) + 100;
+                this.velocity = new THREE.Vector3((Math.random() - 0.5) * 3, 12 + Math.random() * 5, (Math.random() - 0.5) * 2);
+                this.gravity = 0.15;
+                this.exploded = false;
+                this.explosionType = Math.floor(Math.random() * 3);
+
+                const spriteMap = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
+                const material = new THREE.SpriteMaterial({ map: spriteMap, color: this.color, transparent: true, blending: THREE.AdditiveBlending });
+                this.sprite = new THREE.Sprite(material);
+                this.sprite.scale.set(15, 15, 1);
+                this.sprite.position.copy(this.position);
+                scene.add(this.sprite);
+            }
+            update() {
+                if (!this.exploded) {
+                    this.velocity.y -= this.gravity;
+                    this.position.add(this.velocity);
+                    this.sprite.position.copy(this.position);
+                    if (this.velocity.y <= 0 || this.position.y >= this.targetY) this.explode();
+                }
+            }
+            explode() {
+                this.exploded = true;
+                scene.remove(this.sprite);
+                createThreeJSExplosion(this.position, this.hue, this.explosionType);
+            }
+        }
+
+        function createThreeJSExplosion(position, hue, type) {
+            const count = 300;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+            const colors = new Float32Array(count * 3);
+            const baseColor = new THREE.Color(`hsl(${hue}, 100%, 70%)`);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = position.x;
+                positions[i * 3 + 1] = position.y;
+                positions[i * 3 + 2] = position.z;
+                let vx, vy, vz;
+                if (type === 0) {
+                    const theta = Math.random() * Math.PI * 2, phi = Math.acos((Math.random() * 2) - 1), speed = 4 + Math.random() * 8;
+                    vx = Math.sin(phi) * Math.cos(theta) * speed; vy = Math.sin(phi) * Math.sin(theta) * speed; vz = Math.cos(phi) * speed;
+                } else if (type === 1) {
+                    const t = (i / count) * Math.PI * 2;
+                    vx = 16 * Math.pow(Math.sin(t), 3); vy = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)); vz = (Math.random() - 0.5) * 10;
+                    vx *= 0.5; vy *= 0.5;
+                } else {
+                    const points = 5, t = (i / count) * Math.PI * 2 * points, r = (Math.floor((i / count) * points * 2) % 2 === 0) ? 10 : 5;
+                    vx = Math.cos(t) * r; vy = Math.sin(t) * r; vz = (Math.random() - 0.5) * 10;
+                }
+                velocities.push(new THREE.Vector3(vx, vy, vz));
+                colors[i * 3] = baseColor.r; colors[i * 3 + 1] = baseColor.g; colors[i * 3 + 2] = baseColor.b;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const points = new THREE.Points(geometry, new THREE.PointsMaterial({ size: 8, vertexColors: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, sizeAttenuation: true }));
+            scene.add(points);
+            particleGroups.push({ points, velocities, life: 1.0, decay: 0.005 + Math.random() * 0.01 });
+        }
+
+        function animate() {
+            if (!composer) return;
+            requestAnimationFrame(animate);
+            for (let i = fireworkInstances.length - 1; i >= 0; i--) {
+                const fw = fireworkInstances[i]; fw.update();
+                if (fw.exploded) fireworkInstances.splice(i, 1);
+            }
+            for (let i = particleGroups.length - 1; i >= 0; i--) {
+                const group = particleGroups[i], posAttr = group.points.geometry.attributes.position;
+                group.life -= group.decay; group.points.material.opacity = group.life;
+                for (let j = 0; j < group.velocities.length; j++) {
+                    const v = group.velocities[j];
+                    posAttr.array[j * 3] += v.x; posAttr.array[j * 3 + 1] += v.y; posAttr.array[j * 3 + 2] += v.z;
+                    v.y -= 0.1; v.multiplyScalar(0.97);
+                }
+                posAttr.needsUpdate = true;
+                if (group.life <= 0) { scene.remove(group.points); group.points.geometry.dispose(); group.points.material.dispose(); particleGroups.splice(i, 1); }
+            }
+            if (composer) composer.render();
+        }
+
+        function startFireworks() {
+            fireworksActive = true;
+            const launchInterval = setInterval(() => { if (fireworksActive) fireworkInstances.push(new FireworkInstance()); else clearInterval(launchInterval); }, 600);
+            const burstInterval = setInterval(() => { if (fireworksActive) { for (let i = 0; i < 4; i++) setTimeout(() => fireworkInstances.push(new FireworkInstance()), i * 150); } else clearInterval(burstInterval); }, 3000);
+            setTimeout(() => { fireworksActive = false; }, 30000);
+        }
+
+        // Initialize Everything
+        initThreeJS();
+        animate();
+        createParticles();
+        setInterval(createTitleSparkle, 150);
+        updateCountdown();
+        setInterval(() => { updateCountdown(); addPulseAnimation(); }, 1000);
+
+        // Parallax and cleanup
+        document.addEventListener('mousemove', (e) => {
+            const orbs = document.querySelectorAll('.gradient-orb');
+            const x = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2), y = (e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
+            orbs.forEach((orb, index) => { orb.style.transform = `translate(${x * (index + 1) * 30}px, ${y * (index + 1) * 30}px) rotate(${x * 10}deg)`; });
+        });
+    </script>
 </body>
+
 </html>
