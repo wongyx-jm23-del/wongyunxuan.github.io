@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Countdown - Celebration Demo</title>
+    <meta name="description" content="Demo of the celebration animation when countdown reaches zero">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="background-animation">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="gradient-orb orb-4"></div>
+    </div>
+
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <span class="title-text" id="titlePrefixDisplay">Countdown to</span>
+                <div class="year-container">
+                    <div class="year-aura"></div>
+                    <span class="year-highlight" id="yearDisplayDisplay">2025</span>
+                    <div class="title-sparkles" id="title-sparkles"></div>
+                </div>
+            </h1>
+            <p class="subtitle" id="subtitleDisplay">A New Era Begins</p>
+        </header>
+
+        <main class="countdown-section">
+            <div class="countdown-grid celebration">
+                <div class="time-card">
+                    <div class="time-value">00</div>
+                    <div class="time-label">Days</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value">00</div>
+                    <div class="time-label">Hours</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value">00</div>
+                    <div class="time-label">Minutes</div>
+                </div>
+                <div class="time-separator">:</div>
+                <div class="time-card">
+                    <div class="time-value">00</div>
+                    <div class="time-label">Seconds</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" style="width: 100%;"></div>
+            </div>
+
+            <div class="message-container">
+                <p class="countdown-message" id="message">Time until 2026</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Seconds</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">100.00%</div>
+                    <div class="stat-label">Year Progress</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="finalCountdown" class="final-countdown"></div>
+    <canvas id="fireworks"></canvas>
+
+    <!-- Three.js Library and Post-processing -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // Create particles (background dots)
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 60;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 3 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.opacity = Math.random() * 0.5 + 0.2;
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        createParticles();
+
+        // Create sparkles around the title
+        function createTitleSparkle() {
+            const container = document.getElementById('title-sparkles');
+            if (!container) return;
+
+            const sparkle = document.createElement('div');
+            sparkle.className = 'title-sparkle';
+
+            // Random position around the year
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+
+            sparkle.style.left = x + '%';
+            sparkle.style.top = y + '%';
+
+            const size = Math.random() * 6 + 2;
+            sparkle.style.width = size + 'px';
+            sparkle.style.height = size + 'px';
+
+            container.appendChild(sparkle);
+
+            setTimeout(() => {
+                sparkle.remove();
+            }, 1500);
+        }
+
+        setInterval(createTitleSparkle, 150);
+
+        // Demo logic: swap year and wording from 2025 to 2026 for showcase
+        const yearDisplay = document.getElementById('yearDisplayDisplay');
+        const titlePrefix = document.getElementById('titlePrefixDisplay');
+        const subtitle = document.getElementById('subtitleDisplay');
+        const message = document.getElementById('message');
+        const finalCountdownOverlay = document.getElementById('finalCountdown');
+        const mainContainer = document.querySelector('.container');
+        let lastFinalSecond = -1;
+
+        // Three.js Engine State
+        let scene, camera, renderer, composer;
+        let fireworksActive = false;
+        let fireworkInstances = [];
+        let particleGroups = [];
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.z = 800;
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById('fireworks'),
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0); // Transparent clear color
+
+            const renderScene = new RenderPass(scene, camera);
+
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5, 0.4, 0.85
+            );
+
+            composer = new EffectComposer(renderer);
+            // Ensure internal buffers support transparency
+            composer.renderTarget1.texture.format = THREE.RGBAFormat;
+            composer.renderTarget2.texture.format = THREE.RGBAFormat;
+
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                composer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        try {
+            initThreeJS();
+        } catch (e) {
+            console.error("Three.js initialization failed:", e);
+        }
+
+        if (yearDisplay || true) { // Force start even if elements are missing
+            // Force immediate start
+            startDemo();
+        }
+
+        function startDemo() {
+            // Reset UI
+            if (yearDisplay) {
+                yearDisplay.textContent = '2025';
+                yearDisplay.classList.remove('year-flip');
+            }
+            if (titlePrefix) titlePrefix.textContent = 'Countdown to';
+            if (subtitle) subtitle.textContent = 'A New Era Begins';
+            if (message) {
+                message.textContent = 'Time until 2026';
+                message.classList.remove('celebration-message');
+            }
+            document.body.style.animation = 'none';
+
+            // Hidden overlay initially
+            if (finalCountdownOverlay) finalCountdownOverlay.style.display = 'none';
+            if (mainContainer) mainContainer.classList.remove('ui-dimmed');
+
+            // Reset grid values
+            updateGridDemo(10);
+
+            // Reset Three.js State
+            fireworksActive = false;
+            fireworkInstances = [];
+            // Cleanup existing particle groups in scene
+            if (particleGroups) {
+                particleGroups.forEach(group => {
+                    scene.remove(group.points);
+                    group.points.geometry.dispose();
+                    group.points.material.dispose();
+                });
+            }
+            particleGroups = [];
+
+            // Demo sequence:
+            // Start with 10 seconds remaining IMMEDIATELY
+            let demoDistance = 10000;
+
+            // First tick immediately
+            showFinalCountdownDemo(10);
+            updateGridDemo(10);
+
+            const demoInterval = setInterval(() => {
+                demoDistance -= 1000;
+
+                if (demoDistance > 0) {
+                    const secs = Math.ceil(demoDistance / 1000);
+                    showFinalCountdownDemo(secs);
+                    updateGridDemo(secs);
+                } else {
+                    clearInterval(demoInterval);
+                    updateGridDemo(0);
+                    triggerCelebrationDemo();
+
+                    // Start fireworks only after countdown
+                    startFireworksDemo();
+
+                    // Restart demo after 12 seconds of celebration
+                    setTimeout(startDemo, 12000);
+                }
+            }, 1000);
+        }
+
+        function updateGridDemo(secs) {
+            const timeValues = document.querySelectorAll('.time-value');
+            if (timeValues.length >= 4) {
+                timeValues[3].textContent = secs < 10 ? '0' + secs : secs;
+                timeValues[0].textContent = '00';
+                timeValues[1].textContent = '00';
+                timeValues[2].textContent = '00';
+            }
+
+            // Update stats
+            const statValues = document.querySelectorAll('.stat-value');
+            if (statValues.length >= 2) {
+                statValues[0].textContent = secs; // Total Seconds
+                // Calculate pseudo progress (e.g., 99.99% decreasing to 100%?)
+                // Or just show 99.99...%
+                const progress = (100 - (secs / 31536000) * 100).toFixed(4);
+                statValues[1].textContent = progress + '%';
+            }
+        }
+
+
+
+        function showFinalCountdownDemo(seconds) {
+            if (seconds === lastFinalSecond || seconds <= 0) return;
+            lastFinalSecond = seconds;
+
+            if (finalCountdownOverlay) {
+                finalCountdownOverlay.style.display = 'flex';
+                finalCountdownOverlay.innerHTML = `<div class="countdown-number" data-number="${seconds}">${seconds}</div>`;
+
+                if (mainContainer) {
+                    mainContainer.classList.add('ui-dimmed');
+                }
+
+                if (seconds <= 3) {
+                    document.body.style.animation = 'none';
+                    setTimeout(() => {
+                        document.body.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both';
+                    }, 10);
+                }
+            }
+        }
+
+        function triggerCelebrationDemo() {
+            // Hide final countdown overlay immediately
+            if (finalCountdownOverlay) {
+                finalCountdownOverlay.style.display = 'none';
+            }
+            if (mainContainer) {
+                mainContainer.classList.remove('ui-dimmed');
+            }
+
+            const yearDisplay = document.getElementById('yearDisplayDisplay');
+            const titlePrefix = document.getElementById('titlePrefixDisplay');
+            const subtitle = document.getElementById('subtitleDisplay');
+            const message = document.getElementById('message');
+
+            if (yearDisplay) {
+                yearDisplay.classList.add('year-flip');
+                setTimeout(() => {
+                    yearDisplay.textContent = '2026';
+                    if (titlePrefix) titlePrefix.textContent = 'Happy New Year';
+                    if (subtitle) subtitle.textContent = 'Welcome to 2026!';
+                    if (message) {
+                        message.textContent = '🎉 Welcome to 2026! 🎉';
+                        message.classList.add('celebration-message');
+                    }
+                }, 500);
+            }
+        }
+
+        // Add mouse move parallax effect
+        document.addEventListener('mousemove', (e) => {
+            const orbs = document.querySelectorAll('.gradient-orb');
+            const x = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2);
+            const y = (e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
+
+            orbs.forEach((orb, index) => {
+                const factor = (index + 1) * 30;
+                const xOffset = x * factor;
+                const yOffset = y * factor;
+                const rotate = x * 10;
+                orb.style.transform = `translate(${xOffset}px, ${yOffset}px) rotate(${rotate}deg)`;
+            });
+        });
+
+        // Continuously trigger celebration animation with staggered effect
+        setInterval(() => {
+            const grid = document.querySelector('.countdown-grid');
+            grid.style.animation = 'none';
+            setTimeout(() => {
+                grid.style.animation = 'celebrate 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            }, 10);
+        }, 3000);
+
+        // Three.js Firework Class
+        class FireworkInstance {
+            constructor() {
+                this.hue = Math.random() * 360;
+                this.color = new THREE.Color(`hsl(${this.hue}, 100%, 60%)`);
+
+                // Starting position (bottom of screen in 3D)
+                const x = (Math.random() - 0.5) * 1000;
+                const y = -600;
+                const z = (Math.random() - 0.5) * 400;
+
+                this.position = new THREE.Vector3(x, y, z);
+                this.targetY = (Math.random() * 400) + 100;
+                this.velocity = new THREE.Vector3((Math.random() - 0.5) * 3, 12 + Math.random() * 5, (Math.random() - 0.5) * 2);
+                this.gravity = 0.15;
+                this.exploded = false;
+                this.explosionType = Math.floor(Math.random() * 3);
+
+                // Rocket sprite
+                const spriteMap = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
+                const material = new THREE.SpriteMaterial({
+                    map: spriteMap,
+                    color: this.color,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending
+                });
+                this.sprite = new THREE.Sprite(material);
+                this.sprite.scale.set(15, 15, 1);
+                this.sprite.position.copy(this.position);
+                scene.add(this.sprite);
+            }
+
+            update() {
+                if (!this.exploded) {
+                    this.velocity.y -= this.gravity;
+                    this.position.add(this.velocity);
+                    this.sprite.position.copy(this.position);
+
+                    // Explode if reached peak or target
+                    if (this.velocity.y <= 0 || this.position.y >= this.targetY) {
+                        this.explode();
+                    }
+                }
+            }
+
+            explode() {
+                this.exploded = true;
+                scene.remove(this.sprite);
+                createThreeJSExplosion(this.position, this.hue, this.explosionType);
+            }
+        }
+
+        function createThreeJSExplosion(position, hue, type) {
+            const count = 300;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+            const colors = new Float32Array(count * 3);
+            const baseColor = new THREE.Color(`hsl(${hue}, 100%, 70%)`);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = position.x;
+                positions[i * 3 + 1] = position.y;
+                positions[i * 3 + 2] = position.z;
+
+                let vx, vy, vz;
+                if (type === 0) { // Volumetric Sphere
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    const speed = 4 + Math.random() * 8;
+                    vx = Math.sin(phi) * Math.cos(theta) * speed;
+                    vy = Math.sin(phi) * Math.sin(theta) * speed;
+                    vz = Math.cos(phi) * speed;
+                } else if (type === 1) { // 3D Heart
+                    const t = (i / count) * Math.PI * 2;
+                    vx = 16 * Math.pow(Math.sin(t), 3);
+                    vy = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                    vz = (Math.random() - 0.5) * 10;
+                    const speed = 0.5;
+                    vx *= speed; vy *= speed;
+                } else { // 3D Star
+                    const points = 5;
+                    const t = (i / count) * Math.PI * 2 * points;
+                    const r = (Math.floor((i / count) * points * 2) % 2 === 0) ? 10 : 5;
+                    vx = Math.cos(t) * r;
+                    vy = Math.sin(t) * r;
+                    vz = (Math.random() - 0.5) * 10;
+                }
+
+                velocities.push(new THREE.Vector3(vx, vy, vz));
+                colors[i * 3] = baseColor.r;
+                colors[i * 3 + 1] = baseColor.g;
+                colors[i * 3 + 2] = baseColor.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 8,
+                vertexColors: true,
+                transparent: true,
+                opacity: 1,
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
+            });
+
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+            particleGroups.push({
+                points,
+                velocities,
+                life: 1.0,
+                decay: 0.005 + Math.random() * 0.01
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update Rockets
+            for (let i = fireworkInstances.length - 1; i >= 0; i--) {
+                const fw = fireworkInstances[i];
+                fw.update();
+                if (fw.exploded) {
+                    fireworkInstances.splice(i, 1);
+                }
+            }
+
+            // Update Particle Groups
+            for (let i = particleGroups.length - 1; i >= 0; i--) {
+                const group = particleGroups[i];
+                const posAttr = group.points.geometry.attributes.position;
+
+                group.life -= group.decay;
+                group.points.material.opacity = group.life;
+
+                for (let j = 0; j < group.velocities.length; j++) {
+                    const v = group.velocities[j];
+                    posAttr.array[j * 3] += v.x;
+                    posAttr.array[j * 3 + 1] += v.y;
+                    posAttr.array[j * 3 + 2] += v.z;
+
+                    v.y -= 0.1; // gravity
+                    v.multiplyScalar(0.97); // friction
+                }
+                posAttr.needsUpdate = true;
+
+                if (group.life <= 0) {
+                    scene.remove(group.points);
+                    group.points.geometry.dispose();
+                    group.points.material.dispose();
+                    particleGroups.splice(i, 1);
+                }
+            }
+
+            composer.render();
+        }
+
+        animate();
+
+        function launchFirework() {
+            if (fireworksActive) {
+                fireworkInstances.push(new FireworkInstance());
+            }
+        }
+
+        function startFireworksDemo() {
+            fireworksActive = true;
+
+            // Interval for regular launches
+            const launchInterval = setInterval(() => {
+                if (fireworksActive) {
+                    launchFirework();
+                } else {
+                    clearInterval(launchInterval);
+                }
+            }, 600);
+
+            // Occasional bursts of multiple fireworks
+            const burstInterval = setInterval(() => {
+                if (fireworksActive) {
+                    for (let i = 0; i < 4; i++) {
+                        setTimeout(() => launchFirework(), i * 150);
+                    }
+                } else {
+                    clearInterval(burstInterval);
+                }
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        .celebration-message {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: clamp(1.5rem, 3vw, 2.5rem) !important;
+            font-weight: 600;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        #fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            mix-blend-mode: screen;
+        }
+
+        .year-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .title-sparkles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .title-sparkle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ffffff, 0 0 20px #4facfe;
+            animation: sparkle-anim 1.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes sparkle-anim {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        .year-aura {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.2) 0%, transparent 70%);
+            z-index: -1;
+            animation: aura-pulse 4s ease-in-out infinite;
+            filter: blur(20px);
+        }
+
+        @keyframes aura-pulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        /* Shake animation for last seconds */
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .ui-dimmed {
+            opacity: 0.3;
+            filter: blur(5px);
+            transition: opacity 1s ease, filter 1s ease;
+        }
+
+        /* Final Countdown Overlay */
+        .final-countdown {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: radial-gradient(circle, transparent 0%, rgba(5, 8, 26, 0.4) 100%);
+            pointer-events: none;
+        }
+
+        .countdown-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(10rem, 30vw, 25rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffd89b 0%, #ffffff 50%, #ffd89b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 30px rgba(255, 216, 155, 0.5));
+            animation: numberPop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            position: relative;
+        }
+
+        .countdown-number::before {
+            content: attr(data-number);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            -webkit-text-stroke: 4px rgba(255, 255, 255, 0.1);
+            filter: blur(20px);
+        }
+
+        @keyframes numberPop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+                filter: brightness(0.5) blur(10px);
+            }
+
+            30% {
+                opacity: 1;
+                filter: brightness(1.5) blur(0px);
+            }
+
+            100% {
+                transform: scale(1.1);
+                opacity: 0;
+                filter: brightness(1) blur(20px);
+            }
+        }
+    </style>
+</body>
+
+</html>
