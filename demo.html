@@ -102,15 +102,20 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // Create particles (background dots)
+        // Mobile detection for performance optimizations
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        // Create particles (background dots) with mobile optimization
         function createParticles() {
             const particlesContainer = document.getElementById('particles');
-            const particleCount = 60;
+            // Reduce particles on mobile for better performance
+            const particleCount = isMobile ? 25 : 60;
 
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
-                const size = Math.random() * 3 + 2;
+                const size = isMobile ? Math.random() * 2 + 1 : Math.random() * 3 + 2;
                 particle.style.width = size + 'px';
                 particle.style.height = size + 'px';
                 particle.style.left = Math.random() * 100 + '%';
@@ -149,7 +154,8 @@
             }, 1500);
         }
 
-        setInterval(createTitleSparkle, 150);
+        // Reduce sparkle frequency on mobile
+        setInterval(createTitleSparkle, isMobile ? 300 : 150);
 
         // Demo logic: swap year and wording from 2025 to 2026 for showcase
         const yearDisplay = document.getElementById('yearDisplayDisplay');
@@ -173,18 +179,22 @@
 
             renderer = new THREE.WebGLRenderer({
                 canvas: document.getElementById('fireworks'),
-                antialias: true,
-                alpha: true
+                antialias: !isMobile, // Disable antialiasing on mobile
+                alpha: true,
+                powerPreference: isMobile ? 'low-power' : 'high-performance'
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            // Lower pixel ratio on mobile for better performance
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
             renderer.setClearColor(0x000000, 0); // Transparent clear color
 
             const renderScene = new RenderPass(scene, camera);
 
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.5, 0.4, 0.85
+                isMobile ? 1.0 : 1.5, // Lower bloom on mobile
+                0.4,
+                0.85
             );
 
             composer = new EffectComposer(renderer);
@@ -425,7 +435,8 @@
         }
 
         function createThreeJSExplosion(position, hue, type) {
-            const count = 300;
+            // Reduce explosion particles on mobile for smoother animation
+            const count = isMobile ? 150 : 300;
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(count * 3);
             const velocities = [];
