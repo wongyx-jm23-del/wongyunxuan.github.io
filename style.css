@@ -31,8 +31,11 @@ body {
     background: var(--bg-dark);
     color: var(--text-primary);
     min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height */
     overflow-x: hidden;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Background Animation */
@@ -67,6 +70,7 @@ body {
     filter: blur(100px);
     opacity: 0.25;
     animation: float 25s infinite ease-in-out;
+    will-change: transform;
 }
 
 .orb-1 {
@@ -144,6 +148,7 @@ body {
     border-radius: 50%;
     opacity: 0.6;
     animation: rise linear infinite;
+    will-change: transform;
 }
 
 @keyframes rise {
@@ -167,7 +172,9 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing-md);
+    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -446,6 +453,8 @@ body {
     background-clip: text;
     line-height: 1;
     margin-bottom: var(--spacing-xs);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .time-label {
@@ -734,6 +743,7 @@ body {
 @media (max-width: 600px) {
     .container {
         padding: var(--spacing-xs);
+        padding-bottom: calc(var(--spacing-xs) + env(safe-area-inset-bottom));
         gap: var(--spacing-sm);
         min-height: 100dvh;
         /* Use dynamic viewport height */
@@ -1310,6 +1320,7 @@ body {
     left: 0;
     width: 100%;
     height: 60px;
+    padding-bottom: env(safe-area-inset-bottom);
     pointer-events: none;
     z-index: 50;
     overflow: visible;
@@ -1323,7 +1334,28 @@ body {
     flex-direction: column;
     align-items: center;
     transition: transform 0.1s ease;
+    padding: 15px;
+    /* Increase touch target area */
+    margin: -15px;
 }
+
+/* Local User Highlight */
+.walking-person.is-me {
+    z-index: 60;
+}
+
+.walking-person.is-me .person-tag {
+    background: linear-gradient(135deg, #ffd89b 0%, #f7971e 100%);
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 0 15px rgba(255, 216, 155, 0.6);
+    border: 1px solid #ffffff;
+}
+
+.walking-person.is-me .person-body svg {
+    filter: drop-shadow(0 0 8px rgba(255, 216, 155, 0.8));
+}
+
 
 /* Person Body SVG Container */
 .person-body {
@@ -1444,18 +1476,26 @@ body {
 /* Handled by .walking-person pointer-events: auto */
 
 .walking-person {
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: none;
+    /* Disable interaction for all by default */
+    cursor: default;
     transition: filter 0.3s ease, transform 0.1s ease;
+    will-change: transform;
 }
 
-/* Hover glow effect */
-.walking-person:hover {
-    filter: drop-shadow(0 0 15px currentColor) brightness(1.3);
+.walking-person.is-me {
+    pointer-events: auto;
+    /* Enable for self */
+    cursor: pointer;
 }
 
-.walking-person:hover .person-tag {
-    background: rgba(79, 172, 254, 0.4);
+/* Hover glow effect - only for self */
+.walking-person.is-me:hover {
+    filter: drop-shadow(0 0 15px currentColor) brightness(1.3) drop-shadow(0 0 8px rgba(255, 216, 155, 0.8));
+}
+
+.walking-person.is-me:hover .person-tag {
+    background: linear-gradient(135deg, #ffd89b 0%, #ffffff 50%, #f7971e 100%);
     transform: scale(1.1);
 }
 

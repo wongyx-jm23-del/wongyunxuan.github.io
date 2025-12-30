@@ -52,7 +52,7 @@
                 <p>Choose your display name (3-8 characters)</p>
                 <div class="input-wrapper">
                     <input type="text" class="visitor-name-input" id="visitorNameInput" placeholder="Enter name..."
-                        maxlength="12">
+                        maxlength="12" style="font-size: 16px;">
                     <div class="validation-message" id="validationMessage">Invalid name</div>
                 </div>
                 <button class="save-name-btn" id="saveNameBtn">JOIN THE PARTY</button>
@@ -241,6 +241,7 @@
         let connectionSuccessful = false;
         let currentVisitors = 1;
         let myPresenceRef; // Global ref
+        let sessionId; // Unique session ID for this visitor
 
         if (isFirebaseConfigured) {
             try {
@@ -250,7 +251,8 @@
                 firebaseInitialized = true;
 
                 // Unique session ID for this visitor
-                const sessionId = 'visitor_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                sessionId = 'visitor_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                window.sessionId = sessionId; // Global access
 
                 // Reference to presence data
                 const presenceRef = database.ref('presence');
@@ -291,15 +293,15 @@
                     const count = presenceData ? Object.keys(presenceData).length : 1;
                     currentVisitors = Math.max(1, count);
 
-                    // Extract names for walking people sync
-                    const names = [];
+                    // Extract data for walking people sync
+                    const visitorList = [];
                     if (presenceData) {
-                        Object.values(presenceData).forEach(visitor => {
-                            if (visitor.name) names.push(visitor.name);
+                        Object.entries(presenceData).forEach(([id, visitor]) => {
+                            visitorList.push({ sessionId: id, name: visitor.name });
                         });
                     }
 
-                    updateVisitorDisplay(currentVisitors, names);
+                    updateVisitorDisplay(currentVisitors, visitorList);
                 }, (err) => {
                     console.error('❌ Firebase Read Error (Check Rules):', err);
                     if (err.code === 'PERMISSION_DENIED') {
@@ -327,7 +329,7 @@
         }
 
         // Update visitor display function
-        function updateVisitorDisplay(count, names = []) {
+        function updateVisitorDisplay(count, visitorList = []) {
             const visitorCountElement = document.getElementById('visitorCount');
             if (visitorCountElement) {
                 const displayCount = Math.max(1, count);
@@ -341,9 +343,9 @@
                     }, 10);
                 }
 
-                // Sync walking people with visitor count and names
+                // Sync walking people with visitor data
                 if (typeof syncWalkingPeopleCount === 'function') {
-                    syncWalkingPeopleCount(displayCount, names);
+                    syncWalkingPeopleCount(displayCount, visitorList);
                 }
             }
         }
@@ -384,7 +386,7 @@
         // ============================================================
         const walkingPeopleContainer = document.getElementById('walkingPeopleContainer');
         const visitorNames = ['Visitor', 'Guest', 'Friend', 'Watcher', 'Fan', 'User', 'You', 'Someone'];
-        const walkingPeople = []; // Track all walking people
+        const walkingPeople = new Map(); // Track all walking people by sessionId
 
         // Create a walking person SVG
         function createPersonSVG() {
@@ -409,12 +411,21 @@
 
         // Walking person class for back-and-forth movement
         class WalkingPerson {
-            constructor(name) {
+            constructor(sessionId, name) {
+                this.sessionId = sessionId;
                 this.element = document.createElement('div');
                 const colorNum = Math.floor(Math.random() * 8) + 1;
                 this.name = name || visitorNames[Math.floor(Math.random() * visitorNames.length)];
 
                 this.element.className = `walking-person person-color-${colorNum}`;
+                if (sessionId === window.sessionId) {
+                    this.element.classList.add('is-me');
+                    this.name = 'You';
+                } else {
+                    this.name = name || visitorNames[Math.floor(Math.random() * visitorNames.length)];
+                }
+
+                this.element.dataset.id = sessionId;
                 this.element.innerHTML = `
                     <div class="person-body">${createPersonSVG()}</div>
                     <span class="person-tag">${this.name}</span>
@@ -434,6 +445,10 @@
             }
 
             updateName(newName) {
+                if (this.sessionId === window.sessionId) {
+                    // Local user always sees "You"
+                    return;
+                }
                 if (newName && this.name !== newName) {
                     this.name = newName;
                     const tag = this.element.querySelector('.person-tag');
@@ -476,25 +491,25 @@
         }
 
         // Spawn a walking person
-        function spawnWalkingPerson(name) {
+        function spawnWalkingPerson(sessionId, name) {
             if (!walkingPeopleContainer) return;
-            if (walkingPeople.length >= 15) return; // Limit max people on screen
+            const maxPeople = isMobileInteractive ? 8 : 15; // Limit max people on screen
+            if (walkingPeople.size >= maxPeople) return;
 
-            const person = new WalkingPerson(name);
-            walkingPeople.push(person);
+            const person = new WalkingPerson(sessionId, name);
+            walkingPeople.set(sessionId, person);
             return person;
         }
 
         // Remove a walking person
-        function removeWalkingPerson() {
-            if (walkingPeople.length > 1) {
-                const personToRemove = walkingPeople.pop();
-                if (personToRemove) {
-                    // Fade out before removing
-                    personToRemove.element.style.opacity = '0';
-                    personToRemove.element.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => personToRemove.remove(), 500);
-                }
+        function removeWalkingPerson(sessionId) {
+            const personToRemove = walkingPeople.get(sessionId);
+            if (personToRemove) {
+                walkingPeople.delete(sessionId);
+                // Fade out before removing
+                personToRemove.element.style.opacity = '0';
+                personToRemove.element.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => personToRemove.remove(), 500);
             }
         }
 
@@ -504,54 +519,47 @@
             requestAnimationFrame(animateWalkingPeople);
         }
 
-        // Sync walking people count with real visitor count
-        function syncWalkingPeopleCount(targetCount, names = []) {
-            // Ensure at least 1 person, max 15
-            targetCount = Math.min(Math.max(targetCount, 1), 15);
+        // Sync walking people count and names with real visitor data
+        function syncWalkingPeopleCount(targetCount, visitorData = []) {
+            // visitorData is an array of objects: { sessionId, name }
 
-            let currentCount = walkingPeople.length;
-
-            if (currentCount < targetCount) {
-                // Someone joined! Add new walking people
-                const toAdd = targetCount - currentCount;
-                for (let i = 0; i < toAdd; i++) {
-                    setTimeout(() => {
-                        // Re-check count inside timeout to prevent double-spawning if multiple updates occur
-                        if (walkingPeople.length < targetCount) {
-                            const nameIndex = walkingPeople.length;
-                            const name = names[nameIndex] || (nameIndex === 0 ? visitorName : null);
-                            const newPerson = spawnWalkingPerson(name);
-                            if (newPerson) {
-                                // Flash effect for new person
-                                newPerson.element.style.filter = 'brightness(1.5)';
-                                setTimeout(() => {
-                                    if (newPerson && newPerson.element) {
-                                        newPerson.element.style.filter = '';
-                                    }
-                                }, 500);
-                            }
-                        }
-                    }, i * 300);
-                }
-            } else if (currentCount > targetCount) {
-                // Someone left! Remove extra walking people
-                const toRemove = currentCount - targetCount;
-                for (let i = 0; i < toRemove; i++) {
-                    removeWalkingPerson();
+            // If visitorData is empty (fallback or simulated), create dummy data
+            if (visitorData.length === 0) {
+                visitorData = [{ sessionId: 'local_user', name: visitorName }];
+                for (let i = 1; i < targetCount; i++) {
+                    visitorData.push({ sessionId: `sim_${i}`, name: null });
                 }
             }
 
-            // Sync names of existing people
-            if (names.length > 0) {
-                walkingPeople.forEach((person, index) => {
-                    if (names[index]) {
-                        person.updateName(names[index]);
+            // Limit max people
+            const maxDisplay = isMobileInteractive ? 8 : 15;
+            const displayData = visitorData.slice(0, maxDisplay);
+
+            // 1. Remove people who are no longer present
+            const currentIds = displayData.map(d => d.sessionId);
+            for (const [sessionId, person] of walkingPeople.entries()) {
+                if (!currentIds.includes(sessionId)) {
+                    removeWalkingPerson(sessionId);
+                }
+            }
+
+            // 2. Add or update people
+            displayData.forEach((data, index) => {
+                const person = walkingPeople.get(data.sessionId);
+                if (person) {
+                    // Update existing person
+                    if (data.name) person.updateName(data.name);
+                } else if (walkingPeople.size < (isMobileInteractive ? 8 : 15)) {
+                    // Add new person
+                    const newPerson = spawnWalkingPerson(data.sessionId, data.name);
+                    if (newPerson) {
+                        newPerson.element.style.filter = 'brightness(1.5)';
+                        setTimeout(() => {
+                            if (newPerson && newPerson.element) newPerson.element.style.filter = '';
+                        }, 500);
                     }
-                });
-            } else if (walkingPeople.length > 0) {
-                // Fallback: at least sync the first person with the local name
-                walkingPeople[0].updateName(visitorName);
-            }
+                }
+            });
         }
 
         // Spawn initial people based on visitor count
@@ -589,9 +597,10 @@
         function makePeopleSitDown() {
             if (peopleAreSitting) return;
             peopleAreSitting = true;
-            console.log('🪑 Making people sit down, count:', walkingPeople.length);
+            console.log('🪑 Making people sit down, count:', walkingPeople.size);
 
-            walkingPeople.forEach((person, index) => {
+            let index = 0;
+            walkingPeople.forEach((person) => {
                 setTimeout(() => {
                     if (person && person.element) {
                         person.element.classList.add('sitting');
@@ -600,6 +609,7 @@
                         person.speed = 0;
                     }
                 }, index * 100);
+                index++;
             });
         }
 
@@ -620,13 +630,15 @@
             peopleAreWatching = true;
             console.log('🎆 Making people watch fireworks!');
 
-            walkingPeople.forEach((person, index) => {
+            let index = 0;
+            walkingPeople.forEach((person) => {
                 setTimeout(() => {
                     if (person && person.element) {
                         person.element.classList.remove('sitting', 'excited');
                         person.element.classList.add('watching-fireworks');
                     }
                 }, index * 50);
+                index++;
             });
         }
 
@@ -636,7 +648,8 @@
             peopleAreSitting = false;
             peopleAreWatching = false;
 
-            walkingPeople.forEach((person, index) => {
+            let index = 0;
+            walkingPeople.forEach((person) => {
                 setTimeout(() => {
                     if (person && person.element) {
                         person.element.classList.remove('sitting', 'excited', 'watching-fireworks');
@@ -646,6 +659,7 @@
                         person.updateDirection();
                     }
                 }, index * 200);
+                index++;
             });
         }
 
@@ -722,8 +736,31 @@
         }
 
         // Handle person click with cooldown to prevent getting stuck
-        function handlePersonClick(person, event) {
+        function handlePersonClick(person, event, isRemote = false, remoteData = null) {
             if (!person || !person.element) return;
+
+            // Generate or use animation metadata
+            const spin = remoteData ? remoteData.spin : (Math.random() < 0.2);
+            const dance = remoteData ? remoteData.dance : (Math.random() < 0.3);
+            const speechIndex = remoteData ? remoteData.speechIndex : Math.floor(Math.random() * greetings.length);
+            const emoteIndex = remoteData ? remoteData.emoteIndex : Math.floor(Math.random() * emotes.length);
+
+            // Broadcast if it's a local click
+            if (!isRemote && interactionRef) {
+                try {
+                    interactionRef.push({
+                        sessionId: person.sessionId,
+                        type: 'click',
+                        spin: spin,
+                        dance: dance,
+                        speechIndex: speechIndex,
+                        emoteIndex: emoteIndex,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                } catch (err) {
+                    console.warn('Broadcast failed', err);
+                }
+            }
 
             // Prevent rapid clicking - check if already in cooldown
             if (person.isInteracting) return;
@@ -743,17 +780,29 @@
             el.classList.add('jumping', 'waving');
 
             // Show speech bubble
-            addSpeechBubble(el);
+            if (!el.querySelector('.person-speech')) {
+                const speech = document.createElement('div');
+                speech.className = 'person-speech';
+                speech.textContent = greetings[speechIndex];
+                el.appendChild(speech);
+            } else {
+                const speech = el.querySelector('.person-speech');
+                speech.textContent = greetings[speechIndex];
+            }
             el.classList.add('speaking');
 
             // Show emote
-            showEmote(el);
+            const emote = document.createElement('div');
+            emote.className = 'person-emote';
+            emote.textContent = emotes[emoteIndex];
+            el.appendChild(emote);
+            setTimeout(() => emote.remove(), 1500);
 
             // Create heart burst
             createHeartBurst(person.x, 0);
 
-            // Random chance to do a spin (20%)
-            if (Math.random() < 0.2) {
+            // Spin animation
+            if (spin) {
                 setTimeout(() => {
                     if (person.isInteracting) {
                         el.classList.add('spinning');
@@ -762,8 +811,8 @@
                 }, 500);
             }
 
-            // Random chance to start dancing (30%)
-            if (Math.random() < 0.3) {
+            // Dance animation
+            if (dance) {
                 el.classList.add('dancing');
                 setTimeout(() => el.classList.remove('dancing'), 2000);
             }
@@ -774,49 +823,73 @@
                 person.speed = originalSpeed;
                 person.isInteracting = false; // Release cooldown
             }, 1500);
-
-            // Change speech bubble text each time
-            const speech = el.querySelector('.person-speech');
-            if (speech) {
-                speech.textContent = greetings[Math.floor(Math.random() * greetings.length)];
-            }
         }
+
+        // Hover effect - make nearby people look at cursor
+        document.addEventListener('mousemove', (e) => {
+            const cursorX = e.clientX;
+            walkingPeople.forEach(person => {
+                if (!person || !person.element) return;
+                const personX = person.x + 12; // Center of person
+                const distance = Math.abs(cursorX - personX);
+
+                // If close enough, make them "look" at cursor
+                if (distance < 100 && person.speed === 0) {
+                    person.element.classList.add('looking');
+                } else {
+                    person.element.classList.remove('looking');
+                }
+            });
+        });
 
         // Add click listeners to walking people container
         if (walkingPeopleContainer) {
             walkingPeopleContainer.addEventListener('click', (e) => {
                 const personEl = e.target.closest('.walking-person');
                 if (personEl) {
-                    const person = walkingPeople.find(p => p.element === personEl);
-                    if (person) {
+                    const id = personEl.dataset.id;
+                    const person = walkingPeople.get(id);
+                    if (person && id === window.sessionId) {
                         handlePersonClick(person, e);
                     }
                 }
             });
+        }
 
-            // Hover effect - make nearby people look at cursor
-            document.addEventListener('mousemove', (e) => {
-                const cursorX = e.clientX;
-                walkingPeople.forEach(person => {
-                    if (!person || !person.element) return;
-                    const personX = person.x + 12; // Center of person
-                    const distance = Math.abs(cursorX - personX);
+        // ============================================================
+        // 📡 INTERACTION BROADCASTING & LISTENING
+        // ============================================================
+        let interactionRef;
+        const startupTime = Date.now();
 
-                    // If close enough, make them "look" at cursor
-                    if (distance < 100 && person.speed === 0) {
-                        person.element.classList.add('looking');
-                    } else {
-                        person.element.classList.remove('looking');
+        if (isFirebaseConfigured) {
+            try {
+                const database = firebase.database();
+                interactionRef = database.ref('interactions');
+
+                // Listen for new interaction events
+                interactionRef.limitToLast(1).on('child_added', (snapshot) => {
+                    const event = snapshot.val();
+                    // Only process events that happened AFTER we loaded the page
+                    // And not events we triggered ourselves (handled locally for speed)
+                    if (event && event.timestamp > startupTime && event.sessionId !== sessionId) {
+                        const person = walkingPeople.get(event.sessionId);
+                        if (person) {
+                            handlePersonClick(person, null, true, event); // true = remote event
+                        }
                     }
                 });
-            });
+            } catch (err) {
+                console.warn('interaction listener failed', err);
+            }
         }
 
         // Random idle behaviors - people do random things occasionally
         function randomIdleBehavior() {
-            if (walkingPeople.length === 0) return;
+            if (walkingPeople.size === 0) return;
 
-            const randomPerson = walkingPeople[Math.floor(Math.random() * walkingPeople.length)];
+            const entries = Array.from(walkingPeople.values());
+            const randomPerson = entries[Math.floor(Math.random() * entries.length)];
             if (!randomPerson || !randomPerson.element) return;
 
             const actions = ['emote', 'wave', 'jump', 'spin'];
