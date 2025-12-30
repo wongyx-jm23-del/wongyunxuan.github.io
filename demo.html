@@ -511,24 +511,27 @@
             // Ensure at least 1 person, max 15
             targetCount = Math.min(Math.max(targetCount, 1), 15);
 
-            const currentCount = walkingPeople.length;
+            let currentCount = walkingPeople.length;
 
             if (currentCount < targetCount) {
                 // Someone joined! Add new walking people
                 const toAdd = targetCount - currentCount;
                 for (let i = 0; i < toAdd; i++) {
                     setTimeout(() => {
-                        const nameIndex = currentCount + i;
-                        const name = names[nameIndex] || (nameIndex === 0 ? visitorName : null);
-                        const newPerson = spawnWalkingPerson(name);
-                        if (newPerson) {
-                            // Flash effect for new person
-                            newPerson.element.style.filter = 'brightness(1.5)';
-                            setTimeout(() => {
-                                if (newPerson && newPerson.element) {
-                                    newPerson.element.style.filter = '';
-                                }
-                            }, 500);
+                        // Re-check count inside timeout to prevent double-spawning if multiple updates occur
+                        if (walkingPeople.length < targetCount) {
+                            const nameIndex = walkingPeople.length;
+                            const name = names[nameIndex] || (nameIndex === 0 ? visitorName : null);
+                            const newPerson = spawnWalkingPerson(name);
+                            if (newPerson) {
+                                // Flash effect for new person
+                                newPerson.element.style.filter = 'brightness(1.5)';
+                                setTimeout(() => {
+                                    if (newPerson && newPerson.element) {
+                                        newPerson.element.style.filter = '';
+                                    }
+                                }, 500);
+                            }
                         }
                     }, i * 300);
                 }
@@ -555,12 +558,29 @@
 
         // Spawn initial people based on visitor count
         function initWalkingPeople() {
+            // Only spawn if no people exist yet to prevent race conditions with Firebase sync
+            if (walkingPeople.length > 0) {
+                // If people already exist (synced by Firebase), just ensure animation loop is running
+                if (window.walkingPeopleAnimationRunning) return;
+                window.walkingPeopleAnimationRunning = true;
+                animateWalkingPeople();
+                return;
+            }
+
             const initialCount = Math.min(Math.max(currentVisitors, 1), 5);
             for (let i = 0; i < initialCount; i++) {
-                setTimeout(() => spawnWalkingPerson(i === 0 ? visitorName : null), i * 300);
+                setTimeout(() => {
+                    // One last check to avoid double spawning if sync happened during the delay
+                    if (walkingPeople.length < initialCount) {
+                        spawnWalkingPerson(i === 0 ? visitorName : null);
+                    }
+                }, i * 300);
             }
-            // Start animation loop
-            animateWalkingPeople();
+
+            if (!window.walkingPeopleAnimationRunning) {
+                window.walkingPeopleAnimationRunning = true;
+                animateWalkingPeople();
+            }
         }
 
         // Track countdown state
