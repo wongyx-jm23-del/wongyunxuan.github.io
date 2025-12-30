@@ -795,7 +795,7 @@
             });
 
             // Hover effect - make nearby people look at cursor
-            walkingPeopleContainer.addEventListener('mousemove', (e) => {
+            document.addEventListener('mousemove', (e) => {
                 const cursorX = e.clientX;
                 walkingPeople.forEach(person => {
                     if (!person || !person.element) return;

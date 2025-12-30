@@ -1312,7 +1312,7 @@ body {
     height: 60px;
     pointer-events: none;
     z-index: 50;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Individual Walking Person */
@@ -1441,9 +1441,7 @@ body {
    ============================================ */
 
 /* Make people clickable */
-.walking-people-container {
-    pointer-events: auto !important;
-}
+/* Handled by .walking-person pointer-events: auto */
 
 .walking-person {
     pointer-events: auto;
