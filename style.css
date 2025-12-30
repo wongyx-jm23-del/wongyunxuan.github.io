@@ -2202,16 +2202,17 @@ body {
 /* Mobile Identity Panel - Enhanced */
 @media (max-width: 768px) {
     .identity-panel {
-        top: auto;
-        bottom: 100px;
+        top: 15px;
+        bottom: auto;
         left: 10px;
-        right: 10px;
+        right: auto;
+        max-width: 200px;
     }
 
     .name-entry-btn {
-        padding: 12px 18px;
-        font-size: 14px;
-        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 40px;
         /* Touch-friendly minimum */
         -webkit-tap-highlight-color: transparent;
     }
@@ -2244,19 +2245,30 @@ body {
         font-size: 15px;
         -webkit-tap-highlight-color: transparent;
     }
+
+    /* Ensure container has room for walking people and identity panel */
+    .container {
+        padding-bottom: 160px;
+    }
+
+    .footer {
+        margin-bottom: 60px;
+    }
 }
 
 /* Small phones */
 @media (max-width: 400px) {
     .identity-panel {
-        bottom: 80px;
+        top: 12px;
+        bottom: auto;
         left: 8px;
-        right: 8px;
+        right: auto;
+        max-width: 160px;
     }
 
     .name-entry-btn {
-        padding: 10px 14px;
-        font-size: 12px;
+        padding: 8px 12px;
+        font-size: 11px;
     }
 
     .name-input-overlay {
@@ -2270,6 +2282,23 @@ body {
 
     .name-input-overlay p {
         font-size: 11px;
+    }
+
+    /* More container padding for small phones */
+    .container {
+        padding-bottom: 140px;
+    }
+
+    .footer {
+        margin-bottom: 50px;
+    }
+
+    .stats-grid {
+        gap: 0.3rem;
+    }
+
+    .stat-item {
+        padding: 0.4rem;
     }
 }
 

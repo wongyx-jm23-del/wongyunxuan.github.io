@@ -235,9 +235,10 @@
         // ============================================================
 
         // Check if Firebase is configured
-        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+        const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
 
         let firebaseInitialized = false;
+        let connectionSuccessful = false;
         let currentVisitors = 1;
         let myPresenceRef; // Global ref
 
@@ -259,6 +260,8 @@
                 // Track connection status
                 connectedRef.on('value', (snapshot) => {
                     if (snapshot.val() === true) {
+                        connectionSuccessful = true;
+                        console.log('🔥 Firebase Connected Successfully');
                         // Connected - add presence
                         myPresenceRef.set({
                             connected: true,
@@ -274,7 +277,8 @@
                 // Listen for presence changes
                 presenceRef.on('value', (snapshot) => {
                     const presenceData = snapshot.val();
-                    currentVisitors = presenceData ? Object.keys(presenceData).length : 1;
+                    const count = presenceData ? Object.keys(presenceData).length : 1;
+                    currentVisitors = Math.max(1, count);
 
                     // Extract names for walking people sync
                     const names = [];
@@ -287,23 +291,33 @@
                     updateVisitorDisplay(currentVisitors, names);
                 });
 
-                console.log('🔥 Firebase Presence Tracking Active');
+                // Safety timeout: If no connection after 5 seconds, start simulation as fallback
+                setTimeout(() => {
+                    if (!connectionSuccessful) {
+                        console.warn('⚠️ Firebase connection timeout - starting simulation');
+                        startSimulation();
+                    }
+                }, 5000);
+
             } catch (error) {
-                console.warn('Firebase initialization failed:', error);
+                console.warn('❌ Firebase initialization failed:', error);
                 firebaseInitialized = false;
+                startSimulation();
             }
         } else {
             console.log('ℹ️ Firebase not configured - using simulated visitor count');
-            console.log('To enable real-time tracking, add your Firebase config above.');
+            startSimulation();
         }
 
         // Update visitor display function
         function updateVisitorDisplay(count, names = []) {
             const visitorCountElement = document.getElementById('visitorCount');
             if (visitorCountElement) {
+                const displayCount = Math.max(1, count);
                 const oldCount = parseInt(visitorCountElement.textContent) || 0;
-                if (oldCount !== count) {
-                    visitorCountElement.textContent = count;
+
+                if (oldCount !== displayCount) {
+                    visitorCountElement.textContent = displayCount;
                     visitorCountElement.style.animation = 'none';
                     setTimeout(() => {
                         visitorCountElement.style.animation = 'visitorPop 0.3s ease-out';
@@ -312,30 +326,37 @@
 
                 // Sync walking people with visitor count and names
                 if (typeof syncWalkingPeopleCount === 'function') {
-                    syncWalkingPeopleCount(count, names);
+                    syncWalkingPeopleCount(displayCount, names);
                 }
             }
         }
 
-        // Fallback: Simulated count if Firebase not configured
-        if (!isFirebaseConfigured) {
-            currentVisitors = Math.floor(Math.random() * 15) + 5;
+        // Fallback: Simulated count logic
+        let simulationInterval;
+        function startSimulation() {
+            if (connectionSuccessful || simulationInterval) return;
+
+            console.log('💡 Starting visitor simulation');
+            currentVisitors = Math.floor(Math.random() * 12) + 8;
             updateVisitorDisplay(currentVisitors);
 
             function simulateVisitorChange() {
-                const change = Math.floor(Math.random() * 7) - 3;
+                if (connectionSuccessful) {
+                    clearInterval(simulationInterval);
+                    return;
+                }
+                const change = Math.floor(Math.random() * 5) - 2;
                 currentVisitors = Math.max(1, Math.min(99, currentVisitors + change));
                 updateVisitorDisplay(currentVisitors);
+                scheduleNextSimulation();
             }
 
-            function scheduleSimulation() {
-                const delay = (Math.random() * 5000) + 3000;
-                setTimeout(() => {
-                    simulateVisitorChange();
-                    scheduleSimulation();
-                }, delay);
+            function scheduleNextSimulation() {
+                const delay = (Math.random() * 8000) + 4000;
+                simulationInterval = setTimeout(simulateVisitorChange, delay);
             }
-            scheduleSimulation();
+
+            scheduleNextSimulation();
         }
 
         // ============================================================
