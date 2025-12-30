@@ -37,6 +37,40 @@
             <p class="subtitle" id="subtitleDisplay">A New Era Begins</p>
         </header>
 
+        <!-- Visitor Identity UI -->
+        <div class="identity-panel">
+            <button class="name-entry-btn" id="nameEntryBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span id="displayName">Set Name</span>
+            </button>
+            <div class="name-input-overlay" id="nameInputOverlay">
+                <h3>Vibe Check</h3>
+                <p>Choose your display name (3-8 characters)</p>
+                <div class="input-wrapper">
+                    <input type="text" class="visitor-name-input" id="visitorNameInput" placeholder="Enter name..."
+                        maxlength="12">
+                    <div class="validation-message" id="validationMessage">Invalid name</div>
+                </div>
+                <button class="save-name-btn" id="saveNameBtn">JOIN THE PARTY</button>
+                <button class="guest-name-btn" id="guestNameBtn">Continue as Guest</button>
+            </div>
+        </div>
+
+        <!-- Live Visitors Indicator -->
+        <div class="visitors-container" id="visitorsContainer">
+            <div class="visitor-pulse"></div>
+            <svg class="visitor-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            <span class="visitor-count" id="visitorCount">1</span>
+            <span class="visitor-label">watching now</span>
+        </div>
+
         <main class="countdown-section">
             <div class="countdown-grid celebration">
                 <div class="time-card">
@@ -85,6 +119,689 @@
 
     <div id="finalCountdown" class="final-countdown"></div>
     <canvas id="fireworks"></canvas>
+
+    <!-- Walking People Container -->
+    <div class="walking-people-container" id="walkingPeopleContainer"></div>
+
+    <!-- Firebase SDK for Real-time Presence -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // ============================================================
+        // 🆔 VISITOR IDENTITY & FILTERING
+        // ============================================================
+        let visitorName = localStorage.getItem('visitorName') || 'Guest';
+        document.getElementById('displayName').textContent = visitorName;
+
+        const sensitiveWords = [
+            // English (Common inappropriate terms)
+            'fuck', 'shit', 'asshole', 'bitch', 'bastard', 'cunt', 'dick', 'pussy', 'nazi', 'racist',
+            // Chinese (Common inappropriate/sensitive terms)
+            '操', '傻逼', '贱', '骚', '叼', '反共', '法轮', '独', '死', '猪',
+            // Malay (Common inappropriate terms)
+            'pukimak', 'babi', 'lancap', 'pantat', 'anjing', 'bodoh', 'sial', 'gampang'
+        ];
+
+        function isSensitive(name) {
+            const lowerName = name.toLowerCase();
+            // Check for direct matches and character containment for Chinese
+            for (const word of sensitiveWords) {
+                if (lowerName.includes(word.toLowerCase())) return true;
+            }
+            return false;
+        }
+
+        const nameEntryBtn = document.getElementById('nameEntryBtn');
+        const nameInputOverlay = document.getElementById('nameInputOverlay');
+        const visitorNameInput = document.getElementById('visitorNameInput');
+        const saveNameBtn = document.getElementById('saveNameBtn');
+        const validationMessage = document.getElementById('validationMessage');
+
+        const guestNameBtn = document.getElementById('guestNameBtn');
+
+        nameEntryBtn.onclick = () => {
+            nameInputOverlay.classList.toggle('active');
+            nameEntryBtn.classList.toggle('active');
+            if (nameInputOverlay.classList.contains('active')) {
+                visitorNameInput.value = visitorName !== 'Guest' ? visitorName : '';
+                visitorNameInput.focus();
+            }
+        };
+
+        const handleNameUpdate = (newName) => {
+            visitorName = newName;
+            localStorage.setItem('visitorName', visitorName);
+            document.getElementById('displayName').textContent = visitorName;
+            nameInputOverlay.classList.remove('active');
+            nameEntryBtn.classList.remove('active');
+
+            // Immediate local sync
+            if (typeof updateVisitorDisplay === 'function') {
+                updateVisitorDisplay(currentVisitors, []); // Trigger sync with local names
+            }
+
+            if (firebaseInitialized && typeof myPresenceRef !== 'undefined') {
+                myPresenceRef.update({ name: visitorName });
+            }
+        };
+
+        saveNameBtn.onclick = () => {
+            const inputName = visitorNameInput.value.trim();
+
+            // Validation: 3-8 characters
+            if (inputName.length < 3 || inputName.length > 8) {
+                showError('Name must be 3-8 letters!');
+                return;
+            }
+
+            // Filtering
+            if (isSensitive(inputName)) {
+                showError('Name contains sensitive words!');
+                return;
+            }
+
+            handleNameUpdate(inputName);
+        };
+
+        if (guestNameBtn) {
+            guestNameBtn.onclick = () => {
+                handleNameUpdate('Guest');
+            };
+        }
+
+        function showError(msg) {
+            validationMessage.textContent = msg;
+            validationMessage.classList.add('active');
+            visitorNameInput.classList.add('error');
+            setTimeout(() => {
+                validationMessage.classList.remove('active');
+                visitorNameInput.classList.remove('error');
+            }, 3000);
+        }
+
+        // ============================================================
+        // 🔥 FIREBASE CONFIGURATION - PASTE YOUR CONFIG HERE 🔥
+        // ============================================================
+        // Get this from Firebase Console > Project Settings > Your Apps
+        const firebaseConfig = {
+            apiKey: "AIzaSyAltjrs6pR3XLvvawYeLkYvCdNAUyCiuDM",
+            authDomain: "countdown-5719c.firebaseapp.com",
+            databaseURL: "https://countdown-5719c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "countdown-5719c",
+            storageBucket: "countdown-5719c.firebasestorage.app",
+            messagingSenderId: "252724445912",
+            appId: "1:252724445912:web:04876fb7e709e9fe7d8dad",
+            measurementId: "G-JHPD9JXC0Q"
+        };
+        // ============================================================
+
+        // Check if Firebase is configured
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+        let firebaseInitialized = false;
+        let currentVisitors = 1;
+        let myPresenceRef; // Global ref
+
+        if (isFirebaseConfigured) {
+            try {
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+                const database = firebase.database();
+                firebaseInitialized = true;
+
+                // Unique session ID for this visitor
+                const sessionId = 'visitor_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+
+                // Reference to presence data
+                const presenceRef = database.ref('presence');
+                myPresenceRef = database.ref('presence/' + sessionId);
+                const connectedRef = database.ref('.info/connected');
+
+                // Track connection status
+                connectedRef.on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        // Connected - add presence
+                        myPresenceRef.set({
+                            connected: true,
+                            name: visitorName, // Include the initial name
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+
+                        // Remove presence when disconnected
+                        myPresenceRef.onDisconnect().remove();
+                    }
+                });
+
+                // Listen for presence changes
+                presenceRef.on('value', (snapshot) => {
+                    const presenceData = snapshot.val();
+                    currentVisitors = presenceData ? Object.keys(presenceData).length : 1;
+
+                    // Extract names for walking people sync
+                    const names = [];
+                    if (presenceData) {
+                        Object.values(presenceData).forEach(visitor => {
+                            if (visitor.name) names.push(visitor.name);
+                        });
+                    }
+
+                    updateVisitorDisplay(currentVisitors, names);
+                });
+
+                console.log('🔥 Firebase Presence Tracking Active');
+            } catch (error) {
+                console.warn('Firebase initialization failed:', error);
+                firebaseInitialized = false;
+            }
+        } else {
+            console.log('ℹ️ Firebase not configured - using simulated visitor count');
+            console.log('To enable real-time tracking, add your Firebase config above.');
+        }
+
+        // Update visitor display function
+        function updateVisitorDisplay(count, names = []) {
+            const visitorCountElement = document.getElementById('visitorCount');
+            if (visitorCountElement) {
+                const oldCount = parseInt(visitorCountElement.textContent) || 0;
+                if (oldCount !== count) {
+                    visitorCountElement.textContent = count;
+                    visitorCountElement.style.animation = 'none';
+                    setTimeout(() => {
+                        visitorCountElement.style.animation = 'visitorPop 0.3s ease-out';
+                    }, 10);
+                }
+
+                // Sync walking people with visitor count and names
+                if (typeof syncWalkingPeopleCount === 'function') {
+                    syncWalkingPeopleCount(count, names);
+                }
+            }
+        }
+
+        // Fallback: Simulated count if Firebase not configured
+        if (!isFirebaseConfigured) {
+            currentVisitors = Math.floor(Math.random() * 15) + 5;
+            updateVisitorDisplay(currentVisitors);
+
+            function simulateVisitorChange() {
+                const change = Math.floor(Math.random() * 7) - 3;
+                currentVisitors = Math.max(1, Math.min(99, currentVisitors + change));
+                updateVisitorDisplay(currentVisitors);
+            }
+
+            function scheduleSimulation() {
+                const delay = (Math.random() * 5000) + 3000;
+                setTimeout(() => {
+                    simulateVisitorChange();
+                    scheduleSimulation();
+                }, delay);
+            }
+            scheduleSimulation();
+        }
+
+        // ============================================================
+        // 🚶 WALKING PEOPLE ANIMATION (Back and Forth)
+        // ============================================================
+        const walkingPeopleContainer = document.getElementById('walkingPeopleContainer');
+        const visitorNames = ['Visitor', 'Guest', 'Friend', 'Watcher', 'Fan', 'User', 'You', 'Someone'];
+        const walkingPeople = []; // Track all walking people
+
+        // Create a walking person SVG
+        function createPersonSVG() {
+            return `
+                <svg viewBox="0 0 24 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Head -->
+                    <circle cx="12" cy="6" r="5" class="person-fill"/>
+                    <!-- Body -->
+                    <path d="M12 11 L12 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="person-fill" style="stroke: currentColor"/>
+                    <ellipse cx="12" cy="18" rx="4" ry="6" class="person-fill"/>
+                    <!-- Left Leg -->
+                    <path d="M12 24 L8 36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="person-fill leg-l" style="stroke: currentColor" />
+                    <!-- Right Leg -->
+                    <path d="M12 24 L16 36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="person-fill leg-r" style="stroke: currentColor" />
+                    <!-- Left Arm -->
+                    <path d="M12 14 L6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="person-fill arm-l" style="stroke: currentColor" />
+                    <!-- Right Arm -->
+                    <path d="M12 14 L18 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="person-fill arm-r" style="stroke: currentColor" />
+                </svg>
+            `;
+        }
+
+        // Walking person class for back-and-forth movement
+        class WalkingPerson {
+            constructor(name) {
+                this.element = document.createElement('div');
+                const colorNum = Math.floor(Math.random() * 8) + 1;
+                this.name = name || visitorNames[Math.floor(Math.random() * visitorNames.length)];
+
+                this.element.className = `walking-person person-color-${colorNum}`;
+                this.element.innerHTML = `
+                    <div class="person-body">${createPersonSVG()}</div>
+                    <span class="person-tag">${this.name}</span>
+                `;
+
+                // Random starting position within the page
+                this.x = Math.random() * (window.innerWidth - 50);
+                this.speed = 0.5 + Math.random() * 1; // pixels per frame (0.5-1.5)
+                this.direction = Math.random() > 0.5 ? 1 : -1; // 1 = right, -1 = left
+
+                this.element.style.left = this.x + 'px';
+                this.updateDirection();
+
+                if (walkingPeopleContainer) {
+                    walkingPeopleContainer.appendChild(this.element);
+                }
+            }
+
+            updateName(newName) {
+                if (newName && this.name !== newName) {
+                    this.name = newName;
+                    const tag = this.element.querySelector('.person-tag');
+                    if (tag) tag.textContent = newName;
+                }
+            }
+
+            updateDirection() {
+                if (this.direction === -1) {
+                    this.element.classList.add('facing-left');
+                } else {
+                    this.element.classList.remove('facing-left');
+                }
+            }
+
+            update() {
+                // Move in current direction
+                this.x += this.speed * this.direction;
+
+                // Bounce off edges
+                const maxX = window.innerWidth - 40;
+                const minX = 10;
+
+                if (this.x >= maxX) {
+                    this.x = maxX;
+                    this.direction = -1;
+                    this.updateDirection();
+                } else if (this.x <= minX) {
+                    this.x = minX;
+                    this.direction = 1;
+                    this.updateDirection();
+                }
+
+                this.element.style.left = this.x + 'px';
+            }
+
+            remove() {
+                this.element.remove();
+            }
+        }
+
+        // Spawn a walking person
+        function spawnWalkingPerson(name) {
+            if (!walkingPeopleContainer) return;
+            if (walkingPeople.length >= 15) return; // Limit max people on screen
+
+            const person = new WalkingPerson(name);
+            walkingPeople.push(person);
+            return person;
+        }
+
+        // Remove a walking person
+        function removeWalkingPerson() {
+            if (walkingPeople.length > 1) {
+                const personToRemove = walkingPeople.pop();
+                if (personToRemove) {
+                    // Fade out before removing
+                    personToRemove.element.style.opacity = '0';
+                    personToRemove.element.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => personToRemove.remove(), 500);
+                }
+            }
+        }
+
+        // Animation loop for all walking people
+        function animateWalkingPeople() {
+            walkingPeople.forEach(person => person.update());
+            requestAnimationFrame(animateWalkingPeople);
+        }
+
+        // Sync walking people count with real visitor count
+        function syncWalkingPeopleCount(targetCount, names = []) {
+            // Ensure at least 1 person, max 15
+            targetCount = Math.min(Math.max(targetCount, 1), 15);
+
+            const currentCount = walkingPeople.length;
+
+            if (currentCount < targetCount) {
+                // Someone joined! Add new walking people
+                const toAdd = targetCount - currentCount;
+                for (let i = 0; i < toAdd; i++) {
+                    setTimeout(() => {
+                        const nameIndex = currentCount + i;
+                        const name = names[nameIndex] || (nameIndex === 0 ? visitorName : null);
+                        const newPerson = spawnWalkingPerson(name);
+                        if (newPerson) {
+                            // Flash effect for new person
+                            newPerson.element.style.filter = 'brightness(1.5)';
+                            setTimeout(() => {
+                                if (newPerson && newPerson.element) {
+                                    newPerson.element.style.filter = '';
+                                }
+                            }, 500);
+                        }
+                    }, i * 300);
+                }
+            } else if (currentCount > targetCount) {
+                // Someone left! Remove extra walking people
+                const toRemove = currentCount - targetCount;
+                for (let i = 0; i < toRemove; i++) {
+                    removeWalkingPerson();
+                }
+            }
+
+            // Sync names of existing people
+            if (names.length > 0) {
+                walkingPeople.forEach((person, index) => {
+                    if (names[index]) {
+                        person.updateName(names[index]);
+                    }
+                });
+            } else if (walkingPeople.length > 0) {
+                // Fallback: at least sync the first person with the local name
+                walkingPeople[0].updateName(visitorName);
+            }
+        }
+
+        // Spawn initial people based on visitor count
+        function initWalkingPeople() {
+            const initialCount = Math.min(Math.max(currentVisitors, 1), 5);
+            for (let i = 0; i < initialCount; i++) {
+                setTimeout(() => spawnWalkingPerson(i === 0 ? visitorName : null), i * 300);
+            }
+            // Start animation loop
+            animateWalkingPeople();
+        }
+
+        // Track countdown state
+        let peopleAreSitting = false;
+        let peopleAreWatching = false;
+
+        // Make all people sit down
+        function makePeopleSitDown() {
+            if (peopleAreSitting) return;
+            peopleAreSitting = true;
+            console.log('🪑 Making people sit down, count:', walkingPeople.length);
+
+            walkingPeople.forEach((person, index) => {
+                setTimeout(() => {
+                    if (person && person.element) {
+                        person.element.classList.add('sitting');
+                        person.element.classList.remove('facing-left', 'excited', 'watching-fireworks');
+                        // Stop their movement
+                        person.speed = 0;
+                    }
+                }, index * 100);
+            });
+        }
+
+        // Make people excited during countdown
+        function makePeopleExcited() {
+            console.log('🎉 Making people excited!');
+            walkingPeople.forEach(person => {
+                if (person && person.element) {
+                    person.element.classList.add('excited');
+                    person.element.classList.remove('sitting');
+                }
+            });
+        }
+
+        // Make people watch fireworks
+        function makePeopleWatchFireworks() {
+            if (peopleAreWatching) return;
+            peopleAreWatching = true;
+            console.log('🎆 Making people watch fireworks!');
+
+            walkingPeople.forEach((person, index) => {
+                setTimeout(() => {
+                    if (person && person.element) {
+                        person.element.classList.remove('sitting', 'excited');
+                        person.element.classList.add('watching-fireworks');
+                    }
+                }, index * 50);
+            });
+        }
+
+        // Resume walking after celebration
+        function makePeopleWalkAgain() {
+            console.log('🚶 Making people walk again');
+            peopleAreSitting = false;
+            peopleAreWatching = false;
+
+            walkingPeople.forEach((person, index) => {
+                setTimeout(() => {
+                    if (person && person.element) {
+                        person.element.classList.remove('sitting', 'excited', 'watching-fireworks');
+                        // Give them new random speed
+                        person.speed = 0.5 + Math.random() * 1;
+                        person.direction = Math.random() > 0.5 ? 1 : -1;
+                        person.updateDirection();
+                    }
+                }, index * 200);
+            });
+        }
+
+        // Expose functions globally for the countdown script to use
+        window.makePeopleSitDown = makePeopleSitDown;
+        window.makePeopleExcited = makePeopleExcited;
+        window.makePeopleWatchFireworks = makePeopleWatchFireworks;
+        window.makePeopleWalkAgain = makePeopleWalkAgain;
+
+        // ============================================================
+        // ✨ INTERACTIVE PEOPLE - CLICK & HOVER REACTIONS
+        // ============================================================
+
+        // Mobile detection for performance optimizations
+        const isMobileInteractive = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+        const greetings = [
+            "Happy New Year! 🎉",
+            "Hey there! 👋",
+            "Let's party! 🎊",
+            "2026 here we come!",
+            "Woo hoo! 🥳",
+            "Hi friend!",
+            "Can't wait! ⏰",
+            "So excited! ✨",
+            "Almost time! 🎆",
+            "Yay! 🎈"
+        ];
+
+        const emotes = ['❤️', '🎉', '✨', '🌟', '🎊', '💫', '🎈', '🥳', '💖', '🎆'];
+
+        // Add speech bubble to person element
+        function addSpeechBubble(personElement) {
+            if (!personElement.querySelector('.person-speech')) {
+                const speech = document.createElement('div');
+                speech.className = 'person-speech';
+                speech.textContent = greetings[Math.floor(Math.random() * greetings.length)];
+                personElement.appendChild(speech);
+            }
+        }
+
+        // Show random emote above person
+        function showEmote(personElement) {
+            const emote = document.createElement('div');
+            emote.className = 'person-emote';
+            emote.textContent = emotes[Math.floor(Math.random() * emotes.length)];
+            personElement.appendChild(emote);
+
+            setTimeout(() => emote.remove(), 1500);
+        }
+
+        // Create heart burst effect at position - optimized for mobile
+        function createHeartBurst(x, y) {
+            const burst = document.createElement('div');
+            burst.className = 'heart-burst';
+            burst.style.left = x + 'px';
+            burst.style.bottom = '60px';
+
+            const hearts = ['❤️', '💕', '💖', '💗', '💝'];
+            // Fewer hearts on mobile for better performance
+            const heartCount = isMobileInteractive ? 3 : 6;
+            for (let i = 0; i < heartCount; i++) {
+                const heart = document.createElement('span');
+                heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                const angle = (i / heartCount) * Math.PI * 2;
+                const distance = isMobileInteractive ? (20 + Math.random() * 20) : (30 + Math.random() * 30);
+                heart.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                heart.style.setProperty('--ty', Math.sin(angle) * distance - 40 + 'px');
+                burst.appendChild(heart);
+            }
+
+            walkingPeopleContainer.appendChild(burst);
+            setTimeout(() => burst.remove(), 1000);
+        }
+
+        // Handle person click with cooldown to prevent getting stuck
+        function handlePersonClick(person, event) {
+            if (!person || !person.element) return;
+
+            // Prevent rapid clicking - check if already in cooldown
+            if (person.isInteracting) return;
+            person.isInteracting = true;
+
+            const el = person.element;
+
+            // Store original speed before stopping
+            const originalSpeed = person.originalSpeed || person.speed || (0.5 + Math.random() * 1);
+            person.originalSpeed = originalSpeed;
+            person.speed = 0;
+
+            // Clear any existing animation classes first
+            el.classList.remove('jumping', 'waving', 'speaking', 'spinning', 'dancing', 'happy-bounce');
+
+            // Add jump animation
+            el.classList.add('jumping', 'waving');
+
+            // Show speech bubble
+            addSpeechBubble(el);
+            el.classList.add('speaking');
+
+            // Show emote
+            showEmote(el);
+
+            // Create heart burst
+            createHeartBurst(person.x, 0);
+
+            // Random chance to do a spin (20%)
+            if (Math.random() < 0.2) {
+                setTimeout(() => {
+                    if (person.isInteracting) {
+                        el.classList.add('spinning');
+                        setTimeout(() => el.classList.remove('spinning'), 600);
+                    }
+                }, 500);
+            }
+
+            // Random chance to start dancing (30%)
+            if (Math.random() < 0.3) {
+                el.classList.add('dancing');
+                setTimeout(() => el.classList.remove('dancing'), 2000);
+            }
+
+            // Reset after animations - use a single cleanup function
+            setTimeout(() => {
+                el.classList.remove('jumping', 'waving', 'speaking', 'spinning', 'dancing');
+                person.speed = originalSpeed;
+                person.isInteracting = false; // Release cooldown
+            }, 1500);
+
+            // Change speech bubble text each time
+            const speech = el.querySelector('.person-speech');
+            if (speech) {
+                speech.textContent = greetings[Math.floor(Math.random() * greetings.length)];
+            }
+        }
+
+        // Add click listeners to walking people container
+        if (walkingPeopleContainer) {
+            walkingPeopleContainer.addEventListener('click', (e) => {
+                const personEl = e.target.closest('.walking-person');
+                if (personEl) {
+                    const person = walkingPeople.find(p => p.element === personEl);
+                    if (person) {
+                        handlePersonClick(person, e);
+                    }
+                }
+            });
+
+            // Hover effect - make nearby people look at cursor
+            walkingPeopleContainer.addEventListener('mousemove', (e) => {
+                const cursorX = e.clientX;
+                walkingPeople.forEach(person => {
+                    if (!person || !person.element) return;
+                    const personX = person.x + 12; // Center of person
+                    const distance = Math.abs(cursorX - personX);
+
+                    // If close enough, make them "look" at cursor
+                    if (distance < 100 && person.speed === 0) {
+                        person.element.classList.add('looking');
+                    } else {
+                        person.element.classList.remove('looking');
+                    }
+                });
+            });
+        }
+
+        // Random idle behaviors - people do random things occasionally
+        function randomIdleBehavior() {
+            if (walkingPeople.length === 0) return;
+
+            const randomPerson = walkingPeople[Math.floor(Math.random() * walkingPeople.length)];
+            if (!randomPerson || !randomPerson.element) return;
+
+            const actions = ['emote', 'wave', 'jump', 'spin'];
+            const action = actions[Math.floor(Math.random() * actions.length)];
+
+            switch (action) {
+                case 'emote':
+                    showEmote(randomPerson.element);
+                    break;
+                case 'wave':
+                    randomPerson.element.classList.add('waving');
+                    setTimeout(() => randomPerson.element.classList.remove('waving'), 1000);
+                    break;
+                case 'jump':
+                    randomPerson.element.classList.add('happy-bounce');
+                    setTimeout(() => randomPerson.element.classList.remove('happy-bounce'), 600);
+                    break;
+                case 'spin':
+                    randomPerson.element.classList.add('spinning');
+                    setTimeout(() => randomPerson.element.classList.remove('spinning'), 600);
+                    break;
+            }
+        }
+
+        // Start random idle behaviors - less frequent on mobile for performance
+        function scheduleIdleBehavior() {
+            // Longer delays on mobile for better battery life and performance
+            const baseDelay = isMobileInteractive ? 8000 : 5000;
+            const randomDelay = isMobileInteractive ? 12000 : 10000;
+            const delay = baseDelay + Math.random() * randomDelay;
+            setTimeout(() => {
+                randomIdleBehavior();
+                scheduleIdleBehavior();
+            }, delay);
+        }
+
+        // Start idle behaviors after initial load
+        setTimeout(scheduleIdleBehavior, 3000);
+
+        // Start walking people after page loads
+        setTimeout(() => {
+            initWalkingPeople();
+        }, 1500);
+    </script>
 
     <!-- Three.js Library and Post-processing -->
     <script type="importmap">
@@ -220,8 +937,10 @@
         }
 
         if (yearDisplay || true) { // Force start even if elements are missing
-            // Force immediate start
-            startDemo();
+            // Delay start to allow walking people to initialize first
+            setTimeout(() => {
+                startDemo();
+            }, 2500);
         }
 
         function startDemo() {
@@ -258,13 +977,23 @@
             }
             particleGroups = [];
 
+            // Make people walk again at start of demo loop
+            if (typeof window.makePeopleWalkAgain === 'function') {
+                window.makePeopleWalkAgain();
+            }
+
             // Demo sequence:
             // Start with 10 seconds remaining IMMEDIATELY
             let demoDistance = 10000;
 
-            // First tick immediately
+            // First tick immediately - people sit down for the countdown!
             showFinalCountdownDemo(10);
             updateGridDemo(10);
+
+            // Make walking people sit down when countdown starts
+            if (typeof window.makePeopleSitDown === 'function') {
+                window.makePeopleSitDown();
+            }
 
             const demoInterval = setInterval(() => {
                 demoDistance -= 1000;
@@ -273,10 +1002,20 @@
                     const secs = Math.ceil(demoDistance / 1000);
                     showFinalCountdownDemo(secs);
                     updateGridDemo(secs);
+
+                    // Make people excited in the last 3 seconds
+                    if (secs <= 3 && typeof window.makePeopleExcited === 'function') {
+                        window.makePeopleExcited();
+                    }
                 } else {
                     clearInterval(demoInterval);
                     updateGridDemo(0);
                     triggerCelebrationDemo();
+
+                    // Make people watch the fireworks!
+                    if (typeof window.makePeopleWatchFireworks === 'function') {
+                        window.makePeopleWatchFireworks();
+                    }
 
                     // Start fireworks only after countdown
                     startFireworksDemo();

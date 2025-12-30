@@ -1171,3 +1171,1204 @@ body {
         transform: translate3d(4px, 0, 0);
     }
 }
+
+/* Live Visitors Indicator */
+.visitors-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    margin-top: 1.5rem;
+    position: relative;
+    animation: fadeInUp 1s ease-out 0.5s backwards;
+    transition: all 0.3s ease;
+}
+
+.visitors-container:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(102, 126, 234, 0.4);
+    transform: scale(1.05);
+}
+
+.visitor-pulse {
+    position: absolute;
+    left: 0.75rem;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e;
+    animation: pulse-live 2s ease-in-out infinite;
+}
+
+@keyframes pulse-live {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.3);
+        opacity: 0.7;
+    }
+}
+
+.visitor-icon {
+    width: 20px;
+    height: 20px;
+    color: #4facfe;
+    margin-left: 1rem;
+    filter: drop-shadow(0 0 5px rgba(79, 172, 254, 0.5));
+}
+
+.visitor-count {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.visitor-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+/* Responsive adjustments for visitors container */
+@media (max-width: 600px) {
+    .visitors-container {
+        padding: 0.4rem 0.8rem;
+        gap: 0.35rem;
+        margin-top: 1rem;
+    }
+
+    .visitor-pulse {
+        width: 6px;
+        height: 6px;
+        left: 0.6rem;
+    }
+
+    .visitor-icon {
+        width: 16px;
+        height: 16px;
+        margin-left: 0.75rem;
+    }
+
+    .visitor-count {
+        font-size: 1rem;
+    }
+
+    .visitor-label {
+        font-size: 0.75rem;
+    }
+}
+
+/* Visitor count pop animation */
+@keyframes visitorPop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Walking People Container */
+.walking-people-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+}
+
+/* Individual Walking Person */
+.walking-person {
+    position: absolute;
+    bottom: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.1s ease;
+}
+
+/* Person Body SVG Container */
+.person-body {
+    width: 24px;
+    height: 40px;
+    animation: walkBounce 0.4s ease-in-out infinite;
+}
+
+.person-body svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Flip when walking left */
+.walking-person.facing-left .person-body {
+    transform: scaleX(-1);
+}
+
+/* Walking bounce animation */
+@keyframes walkBounce {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+
+    50% {
+        transform: translateY(-3px) rotate(2deg);
+    }
+}
+
+/* Flip animation for person body when facing left */
+.walking-person.facing-left .person-body {
+    animation: walkBounceFlipped 0.4s ease-in-out infinite;
+}
+
+@keyframes walkBounceFlipped {
+
+    0%,
+    100% {
+        transform: scaleX(-1) translateY(0) rotate(2deg);
+    }
+
+    50% {
+        transform: scaleX(-1) translateY(-3px) rotate(-2deg);
+    }
+}
+
+/* Person name tag */
+.person-tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 6px;
+    border-radius: 8px;
+    margin-top: 2px;
+    white-space: nowrap;
+    backdrop-filter: blur(5px);
+}
+
+/* Different person colors */
+.person-color-1 .person-fill {
+    fill: #4facfe;
+}
+
+.person-color-2 .person-fill {
+    fill: #f093fb;
+}
+
+.person-color-3 .person-fill {
+    fill: #00f2fe;
+}
+
+.person-color-4 .person-fill {
+    fill: #ffd89b;
+}
+
+.person-color-5 .person-fill {
+    fill: #22c55e;
+}
+
+.person-color-6 .person-fill {
+    fill: #f5576c;
+}
+
+.person-color-7 .person-fill {
+    fill: #667eea;
+}
+
+.person-color-8 .person-fill {
+    fill: #ff6b6b;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .walking-people-container {
+        height: 50px;
+    }
+
+    .person-body {
+        width: 18px;
+        height: 30px;
+    }
+
+    .person-tag {
+        font-size: 7px;
+        padding: 1px 4px;
+    }
+}
+
+/* ============================================
+   INTERACTIVE PEOPLE STYLES
+   ============================================ */
+
+/* Make people clickable */
+.walking-people-container {
+    pointer-events: auto !important;
+}
+
+.walking-person {
+    pointer-events: auto;
+    cursor: pointer;
+    transition: filter 0.3s ease, transform 0.1s ease;
+}
+
+/* Hover glow effect */
+.walking-person:hover {
+    filter: drop-shadow(0 0 15px currentColor) brightness(1.3);
+}
+
+.walking-person:hover .person-tag {
+    background: rgba(79, 172, 254, 0.4);
+    transform: scale(1.1);
+}
+
+/* Click/Jump animation */
+.walking-person.jumping .person-body {
+    animation: personJump 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes personJump {
+    0% {
+        transform: translateY(0) scale(1);
+    }
+
+    30% {
+        transform: translateY(-25px) scale(1.1);
+    }
+
+    50% {
+        transform: translateY(-30px) scale(1.15) rotate(10deg);
+    }
+
+    70% {
+        transform: translateY(-20px) scale(1.05);
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Wave arms when clicked */
+.walking-person.waving .arm-l,
+.walking-person.waving .arm-r {
+    animation: friendlyWave 0.3s ease-in-out infinite !important;
+}
+
+@keyframes friendlyWave {
+
+    0%,
+    100% {
+        transform: rotate(-60deg);
+    }
+
+    50% {
+        transform: rotate(-120deg);
+    }
+}
+
+/* Speech bubble */
+.person-speech {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a1a2e;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    z-index: 100;
+    margin-bottom: 5px;
+}
+
+.person-speech::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+
+.walking-person.speaking .person-speech {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+
+/* Emote popup above person */
+.person-emote {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    animation: emoteFloat 1.5s ease-out forwards;
+}
+
+@keyframes emoteFloat {
+    0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(0.5);
+    }
+
+    20% {
+        transform: translateX(-50%) translateY(-10px) scale(1.2);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-50px) scale(0.8);
+    }
+}
+
+/* Dancing animation when happy */
+.walking-person.dancing .person-body {
+    animation: personDance 0.4s ease-in-out infinite !important;
+}
+
+@keyframes personDance {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-8deg) scale(1);
+    }
+
+    25% {
+        transform: translateY(-5px) rotate(8deg) scale(1.05);
+    }
+
+    50% {
+        transform: translateY(0) rotate(-8deg) scale(1);
+    }
+
+    75% {
+        transform: translateY(-5px) rotate(8deg) scale(1.05);
+    }
+}
+
+.walking-person.dancing .leg-l,
+.walking-person.dancing .leg-r {
+    animation: dancingLegs 0.2s ease-in-out infinite alternate !important;
+}
+
+@keyframes dancingLegs {
+    0% {
+        transform: rotate(20deg);
+    }
+
+    100% {
+        transform: rotate(-20deg);
+    }
+}
+
+/* Spin animation (random rare action) */
+.walking-person.spinning .person-body {
+    animation: personSpin 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes personSpin {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+    }
+
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+/* Heart burst effect on click */
+.heart-burst {
+    position: absolute;
+    pointer-events: none;
+    z-index: 150;
+}
+
+.heart-burst span {
+    position: absolute;
+    font-size: 16px;
+    animation: heartBurst 1s ease-out forwards;
+}
+
+@keyframes heartBurst {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.5);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(1);
+    }
+}
+
+/* Look at cursor effect */
+.walking-person.looking .person-body {
+    transition: transform 0.2s ease;
+}
+
+/* Happy bounce after interaction */
+.walking-person.happy-bounce .person-body {
+    animation: happyBounce 0.6s ease-in-out !important;
+}
+
+@keyframes happyBounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    20% {
+        transform: translateY(-8px);
+    }
+
+    40% {
+        transform: translateY(-4px);
+    }
+
+    60% {
+        transform: translateY(-6px);
+    }
+
+    80% {
+        transform: translateY(-2px);
+    }
+}
+
+/* ============================================
+   MOBILE OPTIMIZATIONS FOR INTERACTIVE PEOPLE
+   ============================================ */
+
+/* Touch-friendly: Larger tap area on mobile */
+@media (max-width: 768px) {
+    .walking-person {
+        /* Expand tap target area */
+        padding: 10px;
+        margin: -10px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .person-body {
+        /* Slightly larger on mobile for easier tapping */
+        width: 22px;
+        height: 34px;
+    }
+
+    /* Simplified jump animation for better performance */
+    .walking-person.jumping .person-body {
+        animation: personJumpMobile 0.4s ease-out !important;
+    }
+
+    /* Smaller speech bubbles on mobile */
+    .person-speech {
+        font-size: 10px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        max-width: 120px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    /* Smaller emotes on mobile */
+    .person-emote {
+        font-size: 20px;
+    }
+
+    /* Smaller heart burst on mobile */
+    .heart-burst span {
+        font-size: 14px;
+    }
+
+    /* Reduce heart burst count visually */
+    .heart-burst {
+        opacity: 0.9;
+    }
+}
+
+/* Simplified mobile jump animation */
+@keyframes personJumpMobile {
+    0% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-20px) scale(1.1);
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Small phones - further optimizations */
+@media (max-width: 480px) {
+    .walking-people-container {
+        height: 45px;
+    }
+
+    .walking-person {
+        padding: 8px;
+        margin: -8px;
+    }
+
+    .person-body {
+        width: 18px;
+        height: 28px;
+    }
+
+    .person-tag {
+        font-size: 6px;
+        padding: 1px 3px;
+    }
+
+    .person-speech {
+        font-size: 9px;
+        padding: 3px 6px;
+        max-width: 100px;
+    }
+
+    .person-emote {
+        font-size: 16px;
+    }
+
+    .heart-burst span {
+        font-size: 12px;
+    }
+
+    /* Disable dancing on very small screens (performance) */
+    .walking-person.dancing .person-body {
+        animation: personJumpMobile 0.4s ease-out !important;
+    }
+
+    .walking-person.dancing .leg-l,
+    .walking-person.dancing .leg-r {
+        animation: none !important;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+
+    /* Remove hover effects - they cause issues on touch */
+    .walking-person:hover {
+        filter: none;
+    }
+
+    .walking-person:hover .person-tag {
+        background: rgba(0, 0, 0, 0.5);
+        transform: none;
+    }
+
+    /* Add active state for touch feedback */
+    .walking-person:active {
+        filter: brightness(1.3);
+        transform: scale(0.95);
+    }
+
+    /* Disable complex animations for smoother performance */
+    .walking-person.spinning .person-body {
+        animation: personJumpMobile 0.4s ease-out !important;
+    }
+
+    /* Reduce emote float distance */
+    @keyframes emoteFloat {
+        0% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(0.5);
+        }
+
+        20% {
+            transform: translateX(-50%) translateY(-8px) scale(1.1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-30px) scale(0.8);
+        }
+    }
+}
+
+/* Reduce motion preference - accessibility */
+@media (prefers-reduced-motion: reduce) {
+
+    .walking-person,
+    .walking-person .person-body,
+    .person-emote,
+    .heart-burst span {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .walking-person.jumping .person-body,
+    .walking-person.dancing .person-body,
+    .walking-person.spinning .person-body {
+        animation: none !important;
+    }
+}
+
+/* Limb Animations */
+.walking-person:not(.sitting) .leg-l {
+    animation: legL 0.4s ease-in-out infinite;
+    transform-origin: 12px 24px;
+}
+
+.walking-person:not(.sitting) .leg-r {
+    animation: legR 0.4s ease-in-out infinite;
+    transform-origin: 12px 24px;
+}
+
+.walking-person:not(.sitting) .arm-l {
+    animation: armL 0.4s ease-in-out infinite;
+    transform-origin: 12px 14px;
+}
+
+.walking-person:not(.sitting) .arm-r {
+    animation: armR 0.4s ease-in-out infinite;
+    transform-origin: 12px 14px;
+}
+
+.leg-l,
+.leg-r,
+.arm-l,
+.arm-r {
+    transition: transform 0.5s ease-in-out;
+}
+
+@keyframes legL {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(35deg);
+    }
+}
+
+@keyframes legR {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(-35deg);
+    }
+}
+
+@keyframes armL {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(-25deg);
+    }
+}
+
+@keyframes armR {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(25deg);
+    }
+}
+
+/* Sitting State Limbs */
+.walking-person.sitting .leg-l {
+    transform: rotate(90deg) translate(-2px, -2px);
+    transform-origin: 12px 24px;
+}
+
+.walking-person.sitting .leg-r {
+    transform: rotate(-90deg) translate(2px, -2px);
+    transform-origin: 12px 24px;
+}
+
+.walking-person.sitting .arm-l {
+    transform: rotate(45deg);
+    transform-origin: 12px 14px;
+}
+
+.walking-person.sitting .arm-r {
+    transform: rotate(-45deg);
+    transform-origin: 12px 14px;
+}
+
+/* Watching Fireworks Limbs */
+.walking-person.watching-fireworks .arm-l {
+    animation: waveL 1s ease-in-out infinite;
+    transform-origin: 12px 14px;
+}
+
+.walking-person.watching-fireworks .arm-r {
+    animation: waveR 1s ease-in-out infinite;
+    transform-origin: 12px 14px;
+}
+
+@keyframes waveL {
+
+    0%,
+    100% {
+        transform: rotate(40deg);
+    }
+
+    50% {
+        transform: rotate(120deg);
+    }
+}
+
+@keyframes waveR {
+
+    0%,
+    100% {
+        transform: rotate(-40deg);
+    }
+
+    50% {
+        transform: rotate(-120deg);
+    }
+}
+
+/* Sitting State - During Countdown */
+.walking-person.sitting {
+    transition: all 0.5s ease;
+}
+
+.walking-person.sitting .person-body {
+    animation: sittingIdle 1.5s ease-in-out infinite !important;
+    transform: translateY(12px) scale(0.85);
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.4));
+}
+
+.walking-person.sitting .person-tag {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+@keyframes sittingIdle {
+
+    0%,
+    100% {
+        transform: translateY(12px) scale(0.85);
+    }
+
+    50% {
+        transform: translateY(10px) scale(0.85);
+    }
+}
+
+/* Looking up at fireworks */
+.walking-person.watching-fireworks .person-body {
+    animation: watchFireworks 2s ease-in-out infinite !important;
+    transform-origin: bottom center;
+}
+
+@keyframes watchFireworks {
+
+    0%,
+    100% {
+        transform: translateY(10px) scale(0.85) rotate(-5deg);
+    }
+
+    25% {
+        transform: translateY(10px) scale(0.85) rotate(5deg);
+    }
+
+    50% {
+        transform: translateY(8px) scale(0.85) rotate(-3deg);
+    }
+
+    75% {
+        transform: translateY(10px) scale(0.85) rotate(3deg);
+    }
+}
+
+/* Excitement during countdown */
+.walking-person.excited .person-body {
+    animation: excited 0.3s ease-in-out infinite !important;
+}
+
+@keyframes excited {
+
+    0%,
+    100% {
+        transform: translateY(10px) scale(0.85);
+    }
+
+    50% {
+        transform: translateY(6px) scale(0.9);
+    }
+}
+
+/* Visitor Identity UI */
+.identity-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.name-entry-btn {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.name-entry-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.name-entry-btn.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+}
+
+.name-input-overlay {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    background: rgba(20, 20, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 20px;
+    width: 250px;
+    transform: scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+}
+
+.name-input-overlay.active {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.name-input-overlay h3 {
+    color: white;
+    font-size: 16px;
+    margin-bottom: 5px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.name-input-overlay p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-bottom: 15px;
+}
+
+.input-wrapper {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.visitor-name-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 12px 15px;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.visitor-name-input:focus {
+    border-color: #4facfe;
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+}
+
+.visitor-name-input.error {
+    border-color: #f5576c;
+    animation: shake 0.4s ease;
+}
+
+.save-name-btn {
+    width: 100%;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.save-name-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.4);
+}
+
+.guest-name-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.guest-name-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.validation-message {
+    font-size: 11px;
+    color: #f5576c;
+    margin-top: 5px;
+    display: none;
+}
+
+.validation-message.active {
+    display: block;
+}
+
+/* Mobile Identity Panel - Enhanced */
+@media (max-width: 768px) {
+    .identity-panel {
+        top: auto;
+        bottom: 100px;
+        left: 10px;
+        right: 10px;
+    }
+
+    .name-entry-btn {
+        padding: 12px 18px;
+        font-size: 14px;
+        min-height: 44px;
+        /* Touch-friendly minimum */
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .name-input-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        width: calc(100% - 40px);
+        max-width: 320px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .name-input-overlay.active {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .visitor-name-input {
+        font-size: 16px;
+        /* Prevents iOS zoom on focus */
+        padding: 14px 16px;
+        min-height: 48px;
+    }
+
+    .save-name-btn,
+    .guest-name-btn {
+        min-height: 48px;
+        font-size: 15px;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* Small phones */
+@media (max-width: 400px) {
+    .identity-panel {
+        bottom: 80px;
+        left: 8px;
+        right: 8px;
+    }
+
+    .name-entry-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+    }
+
+    .name-input-overlay {
+        padding: 16px;
+        width: calc(100% - 24px);
+    }
+
+    .name-input-overlay h3 {
+        font-size: 14px;
+    }
+
+    .name-input-overlay p {
+        font-size: 11px;
+    }
+}
+
+/* Safe area insets for notched phones (iPhone X+, etc.) */
+@supports (padding: env(safe-area-inset-bottom)) {
+    .walking-people-container {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .identity-panel {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+
+    @media (max-width: 768px) {
+        .identity-panel {
+            bottom: calc(100px + env(safe-area-inset-bottom));
+        }
+
+        .container {
+            padding-left: max(var(--spacing-xs), env(safe-area-inset-left));
+            padding-right: max(var(--spacing-xs), env(safe-area-inset-right));
+        }
+    }
+}
+
+/* GPU Acceleration for smooth animations */
+.walking-person {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.gradient-orb {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.time-card {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimize backdrop-filter on mobile */
+@media (max-width: 768px) {
+
+    .time-card,
+    .stat-item,
+    .visitors-container,
+    .name-entry-btn,
+    .name-input-overlay {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+    .name-entry-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+
+    .save-name-btn:active,
+    .guest-name-btn:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+
+    /* Larger touch targets */
+    .name-entry-btn,
+    .save-name-btn,
+    .guest-name-btn {
+        min-height: 44px;
+    }
+}
+
+/* Prevent text selection on touch */
+.walking-person,
+.person-tag,
+.time-card,
+.stat-item {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Smooth scrolling for mobile */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for iOS Safari 100vh issue */
+@supports (-webkit-touch-callout: none) {
+    .container {
+        min-height: -webkit-fill-available;
+    }
+
+    body {
+        min-height: -webkit-fill-available;
+    }
+}
