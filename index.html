@@ -262,16 +262,27 @@
                     if (snapshot.val() === true) {
                         connectionSuccessful = true;
                         console.log('🔥 Firebase Connected Successfully');
+                        document.getElementById('visitorsContainer')?.classList.add('status-live');
+                        document.getElementById('visitorsContainer')?.classList.remove('status-simulated', 'status-error');
+
                         // Connected - add presence
                         myPresenceRef.set({
                             connected: true,
                             name: visitorName, // Include initial name
                             timestamp: firebase.database.ServerValue.TIMESTAMP
+                        }).catch(err => {
+                            console.error('❌ Firebase Write Error (Check Rules):', err);
+                            document.getElementById('visitorsContainer')?.classList.add('status-error');
                         });
 
                         // Remove presence when disconnected
                         myPresenceRef.onDisconnect().remove();
+                    } else {
+                        console.log('📡 Firebase Disconnected');
                     }
+                }, (err) => {
+                    console.error('❌ Firebase Connection Error:', err);
+                    document.getElementById('visitorsContainer')?.classList.add('status-error');
                 });
 
                 // Listen for presence changes
@@ -289,6 +300,12 @@
                     }
 
                     updateVisitorDisplay(currentVisitors, names);
+                }, (err) => {
+                    console.error('❌ Firebase Read Error (Check Rules):', err);
+                    if (err.code === 'PERMISSION_DENIED') {
+                        console.warn('⚠️ ACTION REQUIRED: Update your Firebase Realtime Database Rules to allow read/write.');
+                    }
+                    document.getElementById('visitorsContainer')?.classList.add('status-error');
                 });
 
                 // Safety timeout: If no connection after 5 seconds, start simulation as fallback
@@ -337,6 +354,9 @@
             if (connectionSuccessful || simulationInterval) return;
 
             console.log('💡 Starting visitor simulation');
+            document.getElementById('visitorsContainer')?.classList.add('status-simulated');
+            document.getElementById('visitorsContainer')?.classList.remove('status-live');
+
             currentVisitors = Math.floor(Math.random() * 12) + 8;
             updateVisitorDisplay(currentVisitors);
 

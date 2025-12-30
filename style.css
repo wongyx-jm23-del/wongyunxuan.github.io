@@ -1200,10 +1200,23 @@ body {
     left: 0.75rem;
     width: 8px;
     height: 8px;
-    background: #22c55e;
+    background: var(--status-color, #22c55e);
     border-radius: 50%;
-    box-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e;
+    box-shadow: 0 0 10px var(--status-color, #22c55e), 0 0 20px var(--status-color, #22c55e);
     animation: pulse-live 2s ease-in-out infinite;
+    transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+
+.visitors-container.status-live {
+    --status-color: #22c55e;
+}
+
+.visitors-container.status-simulated {
+    --status-color: #f59e0b;
+}
+
+.visitors-container.status-error {
+    --status-color: #ef4444;
 }
 
 @keyframes pulse-live {
